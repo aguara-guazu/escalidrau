@@ -9,6 +9,7 @@ import type { CanvasBridge } from "./bridge.js";
 import type { SceneStore } from "./scene.js";
 import type { ChangeTracker } from "./changes.js";
 import { buildLayout } from "./layout.js";
+import { sceneToMermaid } from "./mermaid.js";
 
 const elementSkeleton = z.record(z.unknown());
 const elementUpdate = z.object({ id: z.string() }).passthrough();
@@ -152,6 +153,27 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
       inputSchema: {}
     },
     async () => jsonResult(buildLayout(store.all()))
+  );
+
+  server.registerTool(
+    "export_mermaid",
+    {
+      description:
+        "Export the current canvas as Mermaid flowchart syntax: shapes with their labels become nodes, bound arrows become edges, frames become subgraphs. Useful for pasting diagrams into markdown docs. Purely geometric content (freedraw, lines, images, unbound arrows) cannot be represented and is listed in a trailing %% comment.",
+      inputSchema: {}
+    },
+    async () => {
+      const { mermaid } = sceneToMermaid(store.all());
+      return {
+        content: [
+          ...digest(),
+          {
+            type: "text" as const,
+            text: mermaid === "" ? "The canvas has no elements representable in Mermaid." : mermaid
+          }
+        ]
+      };
+    }
   );
 
   server.registerTool(

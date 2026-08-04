@@ -36,9 +36,9 @@ Con el agente conectado y la app abierta:
 - **Pedile que dibuje**: "dibujame la arquitectura de mi API en el canvas". Lo que dibuja aparece al instante en tu ventana.
 - **Editá a mano lo que quieras**: mover, borrar, cambiar textos. El agente se entera de tus cambios (por el hook en cada mensaje, o al instante si está usando la herramienta de escucha `wait_for_user_changes`).
 - **Pedile que reacomode**: "separá los diagramas que se pisan", "alineá todo horizontal". Las herramientas de layout mueven cada diagrama completo (cajas, flechas y textos juntos).
-- **Exportá**: "exportame el canvas como PNG en ~/Desktop/diagrama.png", o usá el menú de la app.
+- **Exportá**: "exportame el canvas como PNG en ~/Desktop/diagrama.png", o usá el menú de la app. También podés exportar el diagrama como **Mermaid** (menú → "Copiar como Mermaid", o pidiéndoselo al agente) para pegarlo en markdown.
 
-Herramientas MCP expuestas: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `export_image`, `wait_for_user_changes`.
+Herramientas MCP expuestas: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `export_image`, `export_mermaid`, `wait_for_user_changes`.
 
 ## Desarrollo
 

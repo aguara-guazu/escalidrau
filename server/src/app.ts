@@ -12,6 +12,7 @@ import { SceneStore } from "./scene.js";
 import { CanvasBridge } from "./bridge.js";
 import { ChangeTracker } from "./changes.js";
 import { createSessionServer } from "./mcp.js";
+import { sceneToMermaid } from "./mermaid.js";
 
 export type AppOptions = {
   port?: number;
@@ -148,6 +149,11 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
           sendJson(response, 500, { error: "Internal error" });
         }
       });
+      return;
+    }
+    if (urlPath === "/mermaid") {
+      response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end(sceneToMermaid(store.all()).mermaid);
       return;
     }
     if (urlPath === "/changes") {

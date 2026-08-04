@@ -6,3 +6,13 @@
 .default-sidebar-trigger {
   display: none !important;
 }
+
+/* The "Generate > Mermaid to Excalidraw" entry opens the upstream TTD dialog,
+   whose labels cannot be overridden. Mermaid conversion is offered instead
+   via the app menu and the export_mermaid MCP tool. The heading is an inline
+   styled div with no class, hence the :has() selector. */
+.App-toolbar__extra-tools-dropdown [data-testid="toolbar-embeddable"],
+.App-toolbar__extra-tools-dropdown div:has(+ [data-testid="toolbar-embeddable"]),
+.App-toolbar__extra-tools-dropdown div[style*="font-weight"] {
+  display: none !important;
+}

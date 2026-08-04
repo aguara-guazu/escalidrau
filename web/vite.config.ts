@@ -6,10 +6,16 @@ export default defineConfig({
   server: {
     port: 3579,
     proxy: {
-      // In dev the WS bridge lives in the server process; in prod both share the port.
+      // In dev these live in the server process; in prod both share the port.
       "/ws": {
         target: "ws://localhost:3580",
         ws: true
+      },
+      "/mermaid": {
+        target: "http://localhost:3580"
+      },
+      "/changes": {
+        target: "http://localhost:3580"
       }
     }
   },
