@@ -17,7 +17,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Hub between the MCP tools and the browser canvas. Mutations and exports are
- * delegated to the first connected tab (it owns the Excalidraw runtime);
+ * delegated to the first connected tab (it owns the canvas runtime);
  * scene snapshots flow back, feed the change tracker and fan out to any
  * other tab.
  */

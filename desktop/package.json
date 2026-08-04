@@ -1,8 +1,8 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "0.1.0",
-  "description": "Collaborative Excalidraw canvas shared between the user and local AI agents over MCP",
+  "version": "0.1.1",
+  "description": "Collaborative whiteboard shared between the user and local AI agents over MCP",
   "author": "Luciano Serra",
   "main": "dist/main.cjs",
   "scripts": {

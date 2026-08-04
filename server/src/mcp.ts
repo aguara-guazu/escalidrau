@@ -17,7 +17,7 @@ type TextContent = { type: "text"; text: string };
 type ImageContent = { type: "image"; data: string; mimeType: string };
 
 const ADD_ELEMENTS_DESCRIPTION = `Add elements to the shared live canvas (the user sees them appear instantly).
-Elements use the Excalidraw "skeleton" format. Supported types: rectangle, ellipse, diamond, arrow, line, text, frame.
+Elements use the canvas "skeleton" format. Supported types: rectangle, ellipse, diamond, arrow, line, text, frame.
 You may set your own unique "id" on each element and reference those ids later in update/delete calls.
 
 Common properties: x, y, width, height, strokeColor, backgroundColor, fillStyle ("hachure"|"cross-hatch"|"solid"), strokeStyle ("solid"|"dashed"|"dotted"), fontSize.

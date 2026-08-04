@@ -16,7 +16,7 @@ export default defineConfig({
   optimizeDeps: {
     esbuildOptions: {
       // "Arbitrary module namespace identifier names" used by @excalidraw/excalidraw
-      // requires es2022 (see excalidraw examples/with-script-in-browser).
+      // requires es2022.
       target: "es2022"
     }
   },
