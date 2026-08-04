@@ -177,6 +177,16 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
   );
 
   server.registerTool(
+    "import_mermaid",
+    {
+      description:
+        "Render a Mermaid definition (flowchart, sequence, class) onto the shared canvas as editable elements. Content is placed below the existing scene. Use this when the user hands you Mermaid syntax; for new diagrams prefer add_elements.",
+      inputSchema: { mermaid: z.string().min(1) }
+    },
+    async ({ mermaid }) => jsonResult(await bridge.request("import_mermaid", { mermaid }, 30_000))
+  );
+
+  server.registerTool(
     "move_elements",
     {
       description:

@@ -11,7 +11,13 @@ import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/ty
 type ServerRequest = {
   type: "request";
   id: string;
-  action: "add_elements" | "update_elements" | "delete_elements" | "move_elements" | "export_image";
+  action:
+    | "add_elements"
+    | "update_elements"
+    | "delete_elements"
+    | "move_elements"
+    | "import_mermaid"
+    | "export_image";
   payload: Record<string, unknown>;
 };
 
@@ -141,6 +147,8 @@ export class SyncClient {
           request.payload.moves as MoveInstruction[],
           (request.payload.scope as "part" | "element") ?? "part"
         );
+      case "import_mermaid":
+        return this.insertMermaid(request.payload.mermaid as string);
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -436,6 +444,38 @@ export class SyncClient {
       captureUpdate: CaptureUpdateAction.IMMEDIATELY
     });
     return { moved: results, missingIds };
+  }
+
+  // Shared by the in-app import dialog and the import_mermaid MCP action.
+  // New content lands below the existing scene and the viewport follows it.
+  async insertMermaid(definition: string) {
+    const { parseMermaidToExcalidraw } = await import("@excalidraw/mermaid-to-excalidraw");
+    const { elements: skeleton, files } = await parseMermaidToExcalidraw(definition);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const converted = convertToExcalidrawElements(skeleton as any, { regenerateIds: true });
+    if (converted.length === 0) {
+      throw new Error("The Mermaid definition produced no elements");
+    }
+    const existing = this.api.getSceneElements();
+    let placed = converted;
+    if (existing.length > 0) {
+      const targetX = Math.min(...existing.map((element) => element.x));
+      const targetY = Math.max(...existing.map((element) => element.y + element.height)) + 80;
+      const dx = targetX - Math.min(...converted.map((element) => element.x));
+      const dy = targetY - Math.min(...converted.map((element) => element.y));
+      placed = converted.map((element) => ({ ...element, x: element.x + dx, y: element.y + dy }));
+    }
+    if (files) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.api.addFiles(Object.values(files) as any);
+    }
+    this.api.updateScene({
+      elements: [...this.api.getSceneElementsIncludingDeleted(), ...placed],
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.api.scrollToContent(placed as any, { fitToViewport: true, animate: true });
+    return { addedIds: placed.map((element) => element.id) };
   }
 
   private async exportImage(payload: {

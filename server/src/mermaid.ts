@@ -88,7 +88,7 @@ export function sceneToMermaid(elements: SceneElement[]): {
     const startId = (element.startBinding as Binding)?.elementId;
     const endId = (element.endBinding as Binding)?.elementId;
     if (!startId || !endId || !nodeDeclarations.has(startId) || !nodeDeclarations.has(endId)) {
-      skip("arrow (sin conexiones)");
+      skip("arrow (unbound)");
       continue;
     }
     const start = byId.get(startId)!;
@@ -145,7 +145,7 @@ export function sceneToMermaid(elements: SceneElement[]): {
   const skippedEntries = Object.entries(skipped);
   if (skippedEntries.length > 0) {
     lines.push(
-      `  %% sin representación en Mermaid: ${skippedEntries
+      `  %% not representable in Mermaid: ${skippedEntries
         .map(([type, count]) => `${type} ×${count}`)
         .join(", ")}`
     );

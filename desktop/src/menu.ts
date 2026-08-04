@@ -51,21 +51,21 @@ const CLIENTS: ClientDefinition[] = [
     name: "Claude Desktop",
     status: claudeDesktopStatus,
     add: (mcpUrl) => addToClaudeDesktop(bridgeConfig(mcpUrl)),
-    postInstallNote: "Reiniciá Claude Desktop para que tome el conector."
+    postInstallNote: "Restart Claude Desktop to load the connector."
   },
   {
     name: "Codex",
     status: codexStatus,
     add: (mcpUrl) => addToCodex(bridgeConfig(mcpUrl)),
-    postInstallNote: "Las sesiones nuevas de Codex ya lo van a ver."
+    postInstallNote: "New Codex sessions will pick it up."
   },
   {
-    name: "Hook de Claude Code",
+    name: "Claude Code hook",
     status: () => claudeCodeHookStatus(),
     add: () => addClaudeCodeHook(hookConfig()),
-    addLabel: "Instalar hook de Claude Code (avisos de edición en cada prompt)…",
+    addLabel: "Install Claude Code hook (canvas updates on every prompt)…",
     postInstallNote:
-      "En cada mensaje que escribas en Claude Code, el modelo va a recibir tus ediciones recientes del canvas."
+      "Each message you send in Claude Code will now include your recent canvas edits."
   }
 ];
 
@@ -89,13 +89,13 @@ export async function rebuildMenu(mcpUrl: string) {
 
     const clientItem = (client: ClientDefinition, status: ClientStatus): MenuItemConstructorOptions => {
       if (status === "added") {
-        return { label: `${client.name}: agregado ✓`, enabled: false };
+        return { label: `${client.name}: added ✓`, enabled: false };
       }
       if (status === "not-installed") {
-        return { label: `${client.name}: no detectado en esta Mac`, enabled: false };
+        return { label: `${client.name}: not detected on this Mac`, enabled: false };
       }
       return {
-        label: client.addLabel ?? `Agregar a ${client.name}…`,
+        label: client.addLabel ?? `Add to ${client.name}…`,
         click: () => {
           void (async () => {
             try {
@@ -103,12 +103,12 @@ export async function rebuildMenu(mcpUrl: string) {
               await rebuildMenu(mcpUrl);
               await dialog.showMessageBox({
                 type: "info",
-                message: `Servidor MCP agregado a ${client.name}.`,
+                message: `MCP server added to ${client.name}.`,
                 detail: client.postInstallNote
               });
             } catch (error) {
               dialog.showErrorBox(
-                `No se pudo agregar a ${client.name}`,
+                `Could not add to ${client.name}`,
                 error instanceof Error ? error.message : String(error)
               );
               await rebuildMenu(mcpUrl);
@@ -127,16 +127,16 @@ export async function rebuildMenu(mcpUrl: string) {
       {
         label: "MCP",
         submenu: [
-          { label: `Servidor: ${mcpUrl}`, enabled: false },
+          { label: `Server: ${mcpUrl}`, enabled: false },
           {
-            label: "Copiar URL del servidor MCP",
+            label: "Copy MCP server URL",
             click: () => clipboard.writeText(mcpUrl)
           },
           { type: "separator" },
           ...CLIENTS.map((client, index) => clientItem(client, statuses[index])),
           { type: "separator" },
           {
-            label: "Volver a chequear",
+            label: "Re-check",
             click: () => void rebuildMenu(mcpUrl)
           }
         ]

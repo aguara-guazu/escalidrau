@@ -1,60 +1,60 @@
 # Escalidrau
 
-Pizarra de escritorio para macOS donde vos y tu agente de IA local dibujan juntos, en tiempo real, sobre el mismo canvas. La app embebe un servidor MCP: cualquier cliente compatible (Claude Code, Claude Desktop, Codex, etc.) puede leer el canvas, dibujar, reacomodar diagramas y exportar imágenes mientras vos editás a mano.
+A macOS desktop whiteboard where you and your local AI agent draw together, in real time, on the same canvas. The app embeds an MCP server: any compatible client (Claude Code, Claude Desktop, Codex, ...) can read the canvas, draw, rearrange diagrams and export images while you edit by hand.
 
-## Instalación
+## Install
 
-macOS Apple Silicon (M1 o superior). En una terminal:
+macOS Apple Silicon (M1 or later). In a terminal:
 
 ```bash
 curl -fL https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-arm64.dmg -o /tmp/Escalidrau.dmg && open /tmp/Escalidrau.dmg
 ```
 
-Arrastrá **Escalidrau** a Aplicaciones y abrila. Este comando siempre baja la última versión.
+Drag **Escalidrau** to Applications and open it. This command always fetches the latest release.
 
-> Si en cambio descargás el DMG con el navegador o lo recibís por chat, macOS va a decir que la app "está dañada" (la app no está notarizada y la descarga queda en cuarentena). Solución:
+> If you download the DMG with a browser or receive it through chat instead, macOS will claim the app "is damaged" (the app is not notarized, and downloads get quarantined). Fix:
 > ```bash
 > xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
 > ```
 
-## Conectar tu agente
+## Connect your agent
 
-1. Abrí Escalidrau. El servidor MCP queda disponible en `http://localhost:3580/mcp` mientras la app esté abierta.
-2. En la barra de menú, entrá a **MCP**:
-   - **Agregar a Claude Code** — lo registra con la CLI de Claude Code (scope usuario).
-   - **Agregar a Claude Desktop** — escribe el conector en su configuración; reiniciá Claude Desktop después.
-   - **Agregar a Codex** — lo suma a `~/.codex/config.toml`.
-   - **Instalar hook de Claude Code** — con esto, cada mensaje que le escribas a Claude Code le informa automáticamente tus ediciones recientes del canvas.
-   - **Copiar URL del servidor MCP** — para conectar a mano cualquier otro cliente que soporte MCP por HTTP.
+1. Open Escalidrau. The MCP server is available at `http://localhost:3580/mcp` while the app is running.
+2. In the menu bar, open **MCP**:
+   - **Add to Claude Code** — registers it with the Claude Code CLI (user scope).
+   - **Add to Claude Desktop** — writes the connector into its configuration; restart Claude Desktop afterwards.
+   - **Add to Codex** — adds it to `~/.codex/config.toml`.
+   - **Install Claude Code hook** — with this, every message you send in Claude Code automatically informs it about your recent canvas edits.
+   - **Copy MCP server URL** — to manually connect any other client that speaks MCP over HTTP.
 
-El menú muestra el estado de cada integración y se actualiza solo. No hace falta tener Node instalado: las integraciones usan el runtime embebido de la app.
+The menu shows the status of each integration and refreshes on its own. Node is not required: the integrations run on the app's embedded runtime.
 
-## Uso
+## Usage
 
-Con el agente conectado y la app abierta:
+With an agent connected and the app open:
 
-- **Pedile que dibuje**: "dibujame la arquitectura de mi API en el canvas". Lo que dibuja aparece al instante en tu ventana.
-- **Editá a mano lo que quieras**: mover, borrar, cambiar textos. El agente se entera de tus cambios (por el hook en cada mensaje, o al instante si está usando la herramienta de escucha `wait_for_user_changes`).
-- **Pedile que reacomode**: "separá los diagramas que se pisan", "alineá todo horizontal". Las herramientas de layout mueven cada diagrama completo (cajas, flechas y textos juntos).
-- **Exportá**: "exportame el canvas como PNG en ~/Desktop/diagrama.png", o usá el menú de la app. También podés exportar el diagrama como **Mermaid** (menú → "Copiar como Mermaid", o pidiéndoselo al agente) para pegarlo en markdown.
+- **Ask it to draw**: "draw my API architecture on the canvas". Whatever it draws appears instantly in your window.
+- **Edit anything by hand**: move, delete, change text. The agent learns about your changes (through the hook on each message, or instantly if it is listening with the `wait_for_user_changes` tool).
+- **Ask it to rearrange**: "separate the overlapping diagrams", "lay everything out horizontally". The layout tools move each diagram as a whole (boxes, arrows and labels together).
+- **Export**: "export the canvas as PNG to ~/Desktop/diagram.png", or use the app menu. You can also convert the diagram to **Mermaid** (menu → "Copy as Mermaid", or ask the agent) to paste it into markdown, and import Mermaid syntax onto the canvas (menu → "Import Mermaid…").
 
-Herramientas MCP expuestas: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `export_image`, `export_mermaid`, `wait_for_user_changes`.
+Exposed MCP tools: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `export_image`, `wait_for_user_changes`.
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
-npm run dev    # web (vite, :3579) + servidor (:3580)
-npm run app    # app Electron en modo dev
-npm run dist   # genera el DMG en desktop/release/
+npm run dev    # web (vite, :3579) + server (:3580)
+npm run app    # Electron app in dev mode
+npm run dist   # builds the DMG into desktop/release/
 ```
 
-## Limitaciones conocidas
+## Known limitations
 
-- La escena vive en memoria: si cerrás la app se pierde lo no exportado (guardá con el menú → "Guardar en archivo").
-- Solo Apple Silicon por ahora.
-- Una sola instancia por máquina (puerto 3580).
+- The scene lives in memory: closing the app loses anything not exported (save with menu → "Save to file").
+- Apple Silicon only, for now.
+- One instance per machine (port 3580).
 
-## Licencia
+## License
 
-MIT — ver [LICENSE](LICENSE), que incluye la atribución de las dependencias redistribuidas.
+MIT — see [LICENSE](LICENSE), which includes attribution for redistributed dependencies.
