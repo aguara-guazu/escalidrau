@@ -1,0 +1,58 @@
+{
+  "name": "desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Collaborative Excalidraw canvas shared between the user and local AI agents over MCP",
+  "author": "Luciano Serra",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && electron .",
+    "dist": "node build.mjs && electron-builder --mac"
+  },
+  "build": {
+    "appId": "app.escalidrau.local",
+    "productName": "Escalidrau",
+    "electronVersion": "43.2.0",
+    "afterPack": "./after-pack.cjs",
+    "artifactName": "${productName}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web"
+      },
+      {
+        "from": "dist/bridge.cjs",
+        "to": "bridge.cjs"
+      },
+      {
+        "from": "dist/canvas-hook.cjs",
+        "to": "canvas-hook.cjs"
+      }
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "identity": null
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1"
+  }
+}

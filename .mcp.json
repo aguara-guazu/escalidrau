@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "escalidrau": {
+      "type": "http",
+      "url": "http://localhost:3580/mcp"
+    }
+  }
+}

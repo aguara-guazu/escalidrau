@@ -1,0 +1,25 @@
+{
+  "name": "escalidrau",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "web",
+    "server",
+    "desktop"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,server -c blue,green \"npm run dev -w web\" \"npm run dev -w server\"",
+    "build": "npm run build -w web && npm run build -w server",
+    "start": "node server/dist/index.js",
+    "app": "npm run build -w web && npm run start -w desktop",
+    "dist": "npm run build -w web && npm run dist -w desktop"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "esbuild@0.25.12": true,
+    "electron@43.2.0": true
+  }
+}
