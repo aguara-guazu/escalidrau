@@ -4,6 +4,7 @@ import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { SyncClient } from "./sync";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmResetDialog } from "./ConfirmResetDialog";
+import { copyIcon, importIcon, trashIcon } from "./icons";
 import "./debrand.css";
 
 export default function App() {
@@ -61,14 +62,14 @@ export default function App() {
           <MainMenu.DefaultItems.SaveToActiveFile />
           <MainMenu.DefaultItems.Export />
           <MainMenu.DefaultItems.SaveAsImage />
-          <MainMenu.Item onSelect={() => setMermaidOpen(true)}>
+          <MainMenu.Item icon={importIcon} onSelect={() => setMermaidOpen(true)}>
             Import Mermaid…
           </MainMenu.Item>
-          <MainMenu.Item onSelect={() => void copyAsMermaid()}>
+          <MainMenu.Item icon={copyIcon} onSelect={() => void copyAsMermaid()}>
             Copy as Mermaid
           </MainMenu.Item>
           <MainMenu.DefaultItems.SearchMenu />
-          <MainMenu.Item onSelect={() => setResetOpen(true)}>
+          <MainMenu.Item icon={trashIcon} onSelect={() => setResetOpen(true)}>
             Reset the canvas
           </MainMenu.Item>
           <MainMenu.Separator />
