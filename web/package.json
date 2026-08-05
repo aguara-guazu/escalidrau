@@ -10,7 +10,8 @@
     "@excalidraw/excalidraw": "^0.18.0",
     "@excalidraw/mermaid-to-excalidraw": "^2.2.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "trystero": "^0.25.3"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

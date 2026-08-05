@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Excalidraw,
+  LiveCollaborationTrigger,
   MainMenu,
   WelcomeScreen,
   loadFromBlob,
@@ -8,6 +9,8 @@ import {
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, LibraryItems } from "@excalidraw/excalidraw/types";
 import { SyncClient } from "./sync";
+import { CollabClient, type RoomInfo } from "./collab";
+import { RoomDialog } from "./RoomDialog";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { copyIcon, importIcon, trashIcon } from "./icons";
@@ -52,6 +55,10 @@ export default function App() {
   const [mermaidError, setMermaidError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [dropped, setDropped] = useState<DroppedFile | null>(null);
+  const collabRef = useRef<CollabClient | null>(null);
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
   // Installed shape libraries live server-side (they must survive restarts).
   const [initialData] = useState(() => ({
     libraryItems: fetch("/library")
@@ -67,6 +74,22 @@ export default function App() {
     setExcalidrawAPI(api);
     if (!syncRef.current) {
       syncRef.current = new SyncClient(api);
+    }
+    if (!collabRef.current) {
+      const collab = new CollabClient(api);
+      collab.onRoomChange = (info) => setRoomInfo(info);
+      collab.onRoomFull = () => {
+        setRoomError("That room is full (10 people max).");
+        setRoomOpen(true);
+      };
+      collabRef.current = collab;
+      // Deep link / testing: ?room=CODE&nick=NAME[&owner=1] joins on load.
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get("room");
+      const nickParam = params.get("nick");
+      if (roomParam && nickParam) {
+        collab.join(roomParam, nickParam, params.get("owner") === "1");
+      }
     }
   }, []);
 
@@ -190,6 +213,17 @@ export default function App() {
         initialData={initialData}
         onLibraryChange={persistLibrary}
         libraryReturnUrl={window.location.origin}
+        isCollaborating={roomInfo !== null}
+        onPointerUpdate={(payload) => collabRef.current?.handlePointer(payload)}
+        renderTopRightUI={() => (
+          <LiveCollaborationTrigger
+            isCollaborating={roomInfo !== null}
+            onSelect={() => {
+              setRoomError(null);
+              setRoomOpen(true);
+            }}
+          />
+        )}
       >
         <MainMenu>
           <MainMenu.DefaultItems.LoadScene />
@@ -246,6 +280,23 @@ export default function App() {
       >
         This clears the whole canvas for you and the agent. It cannot be undone.
       </ConfirmDialog>
+      <RoomDialog
+        open={roomOpen}
+        info={roomInfo}
+        error={roomError}
+        onCreate={(code, nick) => {
+          setRoomError(null);
+          collabRef.current?.join(code, nick, true);
+        }}
+        onJoin={(code, nick) => {
+          setRoomError(null);
+          collabRef.current?.join(code, nick, false);
+        }}
+        onLeave={() => {
+          collabRef.current?.leave();
+        }}
+        onClose={() => setRoomOpen(false)}
+      />
       <ConfirmDialog
         open={dropped !== null}
         title={dropped?.replace ? "Replace the canvas?" : "Import file"}
