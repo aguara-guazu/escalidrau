@@ -23,6 +23,8 @@ export type AppHandle = {
   port: number;
   canvasUrl: string;
   mcpUrl: string;
+  hasContent: () => boolean;
+  exportScene: () => Promise<string>;
   close: () => Promise<void>;
 };
 
@@ -198,6 +200,12 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
     port,
     canvasUrl,
     mcpUrl,
+    hasContent: () => store.all().some((element) => !element.isDeleted),
+    // Serialized by the renderer (it owns files/images), not from the store.
+    exportScene: async () => {
+      const result = (await bridge.request("export_scene", {}, 15_000)) as { json: string };
+      return result.json;
+    },
     close: async () => {
       for (const transport of transports.values()) {
         await transport.close();

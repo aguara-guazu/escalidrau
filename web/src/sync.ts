@@ -3,7 +3,8 @@ import {
   convertToExcalidrawElements,
   exportToBlob,
   exportToSvg,
-  reconcileElements
+  reconcileElements,
+  serializeAsJSON
 } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
@@ -17,7 +18,8 @@ type ServerRequest = {
     | "delete_elements"
     | "move_elements"
     | "import_mermaid"
-    | "export_image";
+    | "export_image"
+    | "export_scene";
   payload: Record<string, unknown>;
 };
 
@@ -175,6 +177,15 @@ export class SyncClient {
         );
       case "import_mermaid":
         return this.insertMermaid(request.payload.mermaid as string);
+      case "export_scene":
+        return {
+          json: serializeAsJSON(
+            this.api.getSceneElements(),
+            this.api.getAppState(),
+            this.api.getFiles(),
+            "local"
+          )
+        };
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
