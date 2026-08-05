@@ -38,7 +38,7 @@ With an agent connected and the app open:
 - **Ask it to rearrange**: "separate the overlapping diagrams", "lay everything out horizontally". The layout tools move each diagram as a whole (boxes, arrows and labels together).
 - **Export**: "export the canvas as PNG to ~/Desktop/diagram.png", or use the app menu. You can also convert the diagram to **Mermaid** (menu → "Copy as Mermaid", or ask the agent) to paste it into markdown, and import Mermaid syntax onto the canvas (menu → "Import Mermaid…").
 
-Exposed MCP tools: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `export_image`, `wait_for_user_changes`.
+Exposed MCP tools: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
 
 ## Development
 

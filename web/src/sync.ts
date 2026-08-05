@@ -19,7 +19,8 @@ type ServerRequest = {
     | "move_elements"
     | "import_mermaid"
     | "export_image"
-    | "export_scene";
+    | "export_scene"
+    | "view_canvas";
   payload: Record<string, unknown>;
 };
 
@@ -186,6 +187,8 @@ export class SyncClient {
             "local"
           )
         };
+      case "view_canvas":
+        return this.viewCanvas(request.payload.ids as string[] | undefined);
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -513,6 +516,41 @@ export class SyncClient {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.api.scrollToContent(placed as any, { fitToViewport: true, animate: true });
     return { addedIds: placed.map((element) => element.id) };
+  }
+
+  // Agent-facing render: fits the longest side to ~1600px so text stays
+  // legible at the resolution vision models actually process.
+  private async viewCanvas(ids?: string[]) {
+    const all = this.api.getSceneElements();
+    const targets =
+      ids && ids.length > 0 ? all.filter((element) => ids.includes(element.id)) : all;
+    if (targets.length === 0) {
+      throw new Error("Nothing to render — the canvas (or that part) is empty");
+    }
+    const minX = Math.min(...targets.map((element) => element.x));
+    const minY = Math.min(...targets.map((element) => element.y));
+    const maxX = Math.max(...targets.map((element) => element.x + element.width));
+    const maxY = Math.max(...targets.map((element) => element.y + element.height));
+    const maxSide = Math.max(maxX - minX, maxY - minY) + 32;
+    const scale = Math.min(3, Math.max(0.2, 1600 / maxSide));
+    const blob = await exportToBlob({
+      elements: targets,
+      appState: {
+        ...this.api.getAppState(),
+        exportBackground: true,
+        exportWithDarkMode: false
+      },
+      files: this.api.getFiles(),
+      mimeType: "image/png",
+      exportPadding: 16,
+      getDimensions: (width: number, height: number) => ({
+        width: width * scale,
+        height: height * scale,
+        scale
+      })
+    });
+    const dataUrl = await blobToDataUrl(blob);
+    return { data: dataUrl.split(",")[1] };
   }
 
   private async exportImage(payload: {

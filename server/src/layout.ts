@@ -48,18 +48,7 @@ const bboxOf = (elements: SceneElement[]): Bbox => {
 const intersects = (a: Bbox, b: Bbox) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-/**
- * Spatial analysis of the scene: elements are clustered into connected
- * "parts" (a diagram of shapes joined by bound arrows, groups, labels and
- * frames is one part) with bounding boxes and pairwise overlaps. This is
- * what lets an agent reason about arrangement without pixel access.
- */
-export function buildLayout(elements: SceneElement[]): Layout {
-  const alive = elements.filter((element) => !element.isDeleted);
-  if (alive.length === 0) {
-    return { canvas: null, parts: [], overlaps: [] };
-  }
-
+const computeComponents = (alive: SceneElement[]): Map<string, SceneElement[]> => {
   const parent = new Map<string, string>();
   const find = (id: string): string => {
     let root = id;
@@ -115,6 +104,22 @@ export function buildLayout(elements: SceneElement[]): Layout {
       components.set(root, [element]);
     }
   }
+  return components;
+};
+
+/**
+ * Spatial analysis of the scene: elements are clustered into connected
+ * "parts" (a diagram of shapes joined by bound arrows, groups, labels and
+ * frames is one part) with bounding boxes and pairwise overlaps. This is
+ * what lets an agent reason about arrangement without pixel access.
+ */
+export function buildLayout(elements: SceneElement[]): Layout {
+  const alive = elements.filter((element) => !element.isDeleted);
+  if (alive.length === 0) {
+    return { canvas: null, parts: [], overlaps: [] };
+  }
+
+  const components = computeComponents(alive);
 
   const parts: Part[] = [...components.values()]
     .map((members) => {
@@ -153,4 +158,18 @@ export function buildLayout(elements: SceneElement[]): Layout {
   }
 
   return { canvas: bboxOf(alive), parts, overlaps };
+}
+
+/** Full membership of the connected part containing elementId, or null. */
+export function partElementIds(elements: SceneElement[], elementId: string): string[] | null {
+  const alive = elements.filter((element) => !element.isDeleted);
+  if (!alive.some((element) => element.id === elementId)) {
+    return null;
+  }
+  for (const members of computeComponents(alive).values()) {
+    if (members.some((element) => element.id === elementId)) {
+      return members.map((element) => element.id);
+    }
+  }
+  return null;
 }

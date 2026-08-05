@@ -8,7 +8,7 @@ import { z } from "zod";
 import type { CanvasBridge } from "./bridge.js";
 import type { SceneStore } from "./scene.js";
 import type { ChangeTracker } from "./changes.js";
-import { buildLayout } from "./layout.js";
+import { buildLayout, partElementIds } from "./layout.js";
 import { sceneToMermaid } from "./mermaid.js";
 
 const elementSkeleton = z.record(z.unknown());
@@ -29,7 +29,9 @@ To connect elements that already exist on the canvas, draw the arrow with explic
 Example:
 [{"id":"api","type":"rectangle","x":100,"y":100,"width":180,"height":70,"label":{"text":"API"}},
  {"id":"db","type":"rectangle","x":420,"y":100,"width":180,"height":70,"label":{"text":"DB"}},
- {"type":"arrow","x":280,"y":135,"start":{"id":"api"},"end":{"id":"db"}}]`;
+ {"type":"arrow","x":280,"y":135,"start":{"id":"api"},"end":{"id":"db"}}]
+
+After a batch of edits, call view_canvas to visually verify the result.`;
 
 export type SessionContext = {
   store: SceneStore;
@@ -190,7 +192,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
     "move_elements",
     {
       description:
-        "Move elements freely on the canvas, keeping their structure intact. With scope \"part\" (default) moving any element id relocates its whole connected part — the shapes, labels, groups and bound arrows that form that diagram. With scope \"element\" only the element (plus its label/group) moves, and arrows bound to it stretch to follow. Each move takes either a relative shift (dx/dy) or an absolute target (x/y = new top-left of the moved unit's bounding box). Avoid listing two ids that belong to the same part in one call.",
+        "Move elements freely on the canvas, keeping their structure intact. With scope \"part\" (default) moving any element id relocates its whole connected part — the shapes, labels, groups and bound arrows that form that diagram. With scope \"element\" only the element (plus its label/group) moves, and arrows bound to it stretch to follow. Each move takes either a relative shift (dx/dy) or an absolute target (x/y = new top-left of the moved unit's bounding box). Avoid listing two ids that belong to the same part in one call. After rearranging, call view_canvas to visually verify the result.",
       inputSchema: {
         moves: z
           .array(
@@ -285,6 +287,32 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
         };
       }
       return { content: changes };
+    }
+  );
+
+  server.registerTool(
+    "view_canvas",
+    {
+      description:
+        "Render the canvas (or one connected part of it) as a PNG image you can look at. Call it after a batch of adds/moves/restyles to visually verify the result — overflowing text, overlaps and misrouted arrows show up here, not in get_scene. Pass the id of any element to zoom into that element's whole connected part; omit it to view everything. Output is sized for model vision (longest side ~1600px). Verify once per batch, not after every element.",
+      inputSchema: { id: z.string().optional() }
+    },
+    async ({ id }) => {
+      let ids: string[] | undefined;
+      if (id) {
+        const members = partElementIds(store.all(), id);
+        if (!members) {
+          throw new Error(`No element "${id}" on the canvas`);
+        }
+        ids = members;
+      }
+      const result = (await bridge.request("view_canvas", { ids }, 30_000)) as { data: string };
+      return {
+        content: [
+          ...digest(),
+          { type: "image" as const, data: result.data, mimeType: "image/png" }
+        ]
+      };
     }
   );
 
