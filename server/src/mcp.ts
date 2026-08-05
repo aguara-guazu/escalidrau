@@ -145,7 +145,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
     return [
       {
         type: "text",
-        text: `[canvas] The user edited the canvas since your last tool call: ${summaries.join("; ")}.`
+        text: `[canvas] The user or a collaborator edited the canvas since your last tool call: ${summaries.join("; ")}.`
       }
     ];
   };

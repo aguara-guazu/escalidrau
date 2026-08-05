@@ -1,10 +1,13 @@
 import { joinRoom, selfId } from "trystero";
+import { CaptureUpdateAction, reconcileElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
 const APP_ID = "escalidrau-p2p";
 const MAX_MEMBERS = 10;
 const CURSOR_SEND_MS = 40;
 const CURSOR_PUSH_MS = 40;
+const SCENE_FLUSH_MS = 150;
+const SNAPSHOT_RETRY_MS = 3000;
 
 // Distinct cursor colors; assignment is order-independent (sorted peer ids)
 // so every member sees the same color for the same person.
@@ -62,6 +65,16 @@ export class CollabClient {
   private sendCursor: ((data: { x: number; y: number; b?: number }) => void) | null = null;
   private lastCursorSentAt = 0;
   private pushScheduled = false;
+  // Signature of the last version of each element we sent or received; keeps
+  // broadcasts incremental and prevents echoing a peer's change back.
+  private knownVersions = new Map<string, string>();
+  private sentFileIds = new Set<string>();
+  private sceneFlushTimer: number | null = null;
+  private snapshotSettled = false;
+  private snapshotAskedTo = new Set<string>();
+  private sendScene: ((elements: unknown[], target?: string) => void) | null = null;
+  private sendFiles: ((files: unknown, target?: string) => void) | null = null;
+  private askSnapshot: ((target: string) => void) | null = null;
   onRoomChange: (info: RoomInfo | null) => void = () => {};
   onRoomFull: () => void = () => {};
 
@@ -81,13 +94,43 @@ export class CollabClient {
     this.code = code.trim().toUpperCase();
     this.nick = nick.trim().slice(0, 24) || "anon";
     this.isOwner = isOwner;
+    this.knownVersions.clear();
+    this.sentFileIds.clear();
+    this.snapshotAskedTo.clear();
+    // The room creator is the initial source of truth; joiners pull a snapshot.
+    this.snapshotSettled = isOwner;
     const room = joinRoom({ appId: APP_ID }, this.code);
     this.room = room;
 
     const hello = room.makeAction<{ nick: string }>("hello");
     const cursor = room.makeAction<{ x: number; y: number; b?: number }>("cursor");
     const full = room.makeAction<boolean>("full");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scene = room.makeAction<any>("scene");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const files = room.makeAction<any>("files");
+    const snapReq = room.makeAction<boolean>("snapreq");
     this.sendCursor = (data) => void cursor.send(data);
+    this.sendScene = (elements, target) =>
+      void scene.send({ elements }, target ? { target } : undefined);
+    this.sendFiles = (payload, target) =>
+      void files.send({ files: payload }, target ? { target } : undefined);
+    this.askSnapshot = (target) => void snapReq.send(true, { target });
+
+    scene.onMessage = (data) => {
+      const elements = (data?.elements ?? []) as Array<Record<string, unknown>>;
+      if (elements.length > 0) {
+        this.applyRemoteElements(elements);
+      }
+    };
+    files.onMessage = (data) => {
+      const payload = data?.files as Record<string, unknown> | undefined;
+      if (payload) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.api.addFiles(Object.values(payload) as any);
+      }
+    };
+    snapReq.onMessage = (_data, context) => this.sendSnapshot(context.peerId);
 
     room.onPeerJoin = (peerId: string) => {
       // The owner enforces the room limit; late arrivals are turned away.
@@ -106,6 +149,7 @@ export class CollabClient {
         // Greet back so both sides know each other regardless of join order.
         void hello.send({ nick: this.nick }, { target: peerId });
       }
+      this.maybeRequestSnapshot(peerId);
       this.notify();
     };
     cursor.onMessage = (data, context) => {
@@ -141,6 +185,15 @@ export class CollabClient {
     void this.room.leave();
     this.room = null;
     this.sendCursor = null;
+    this.sendScene = null;
+    this.sendFiles = null;
+    this.askSnapshot = null;
+    if (this.sceneFlushTimer !== null) {
+      window.clearTimeout(this.sceneFlushTimer);
+      this.sceneFlushTimer = null;
+    }
+    this.knownVersions.clear();
+    this.sentFileIds.clear();
     this.peers.clear();
     this.collaborators.clear();
     this.api.updateScene({ collaborators: new Map() });
@@ -161,6 +214,115 @@ export class CollabClient {
       y: Math.round(payload.pointer.y),
       b: payload.button === "down" ? 1 : 0
     });
+  }
+
+  /** Called on every local scene change; broadcasts only what actually moved. */
+  onLocalChange() {
+    if (!this.room || this.sceneFlushTimer !== null) {
+      return;
+    }
+    this.sceneFlushTimer = window.setTimeout(() => {
+      this.sceneFlushTimer = null;
+      this.flushScene();
+    }, SCENE_FLUSH_MS);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private signature(element: Record<string, any>): string {
+    return `${element.version}:${element.versionNonce}`;
+  }
+
+  private flushScene() {
+    if (!this.room || !this.sendScene) {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const all = this.api.getSceneElementsIncludingDeleted() as unknown as Array<Record<string, any>>;
+    const changed = all.filter(
+      (element) => this.knownVersions.get(element.id) !== this.signature(element)
+    );
+    if (changed.length === 0) {
+      return;
+    }
+    for (const element of changed) {
+      this.knownVersions.set(element.id, this.signature(element));
+    }
+    this.sendPendingFiles(changed);
+    this.sendScene(changed);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private sendPendingFiles(elements: Array<Record<string, any>>, target?: string) {
+    if (!this.sendFiles) {
+      return;
+    }
+    const wanted = elements
+      .map((element) => element.fileId as string | undefined)
+      .filter((fileId): fileId is string => typeof fileId === "string")
+      .filter((fileId) => target !== undefined || !this.sentFileIds.has(fileId));
+    if (wanted.length === 0) {
+      return;
+    }
+    const available = this.api.getFiles();
+    const payload: Record<string, unknown> = {};
+    for (const fileId of wanted) {
+      const file = available[fileId as keyof typeof available];
+      if (file) {
+        payload[fileId] = file;
+        this.sentFileIds.add(fileId);
+      }
+    }
+    if (Object.keys(payload).length > 0) {
+      this.sendFiles(payload, target);
+    }
+  }
+
+  private applyRemoteElements(remote: Array<Record<string, unknown>>) {
+    for (const element of remote) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.knownVersions.set(element.id as string, this.signature(element as Record<string, any>));
+    }
+    const local = this.api.getSceneElementsIncludingDeleted();
+    const reconciled = reconcileElements(
+      local,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      remote as any,
+      this.api.getAppState()
+    );
+    this.api.updateScene({ elements: reconciled, captureUpdate: CaptureUpdateAction.NEVER });
+    this.snapshotSettled = true;
+  }
+
+  // A joiner pulls the current scene from one peer only (lowest id wins) and
+  // retries with another if that peer never answers.
+  private maybeRequestSnapshot(peerId: string) {
+    if (this.snapshotSettled || !this.askSnapshot || this.snapshotAskedTo.has(peerId)) {
+      return;
+    }
+    this.snapshotAskedTo.add(peerId);
+    this.askSnapshot(peerId);
+    window.setTimeout(() => {
+      if (this.snapshotSettled || !this.room) {
+        return;
+      }
+      const next = [...this.peers.keys()].find((id) => !this.snapshotAskedTo.has(id));
+      if (next) {
+        this.maybeRequestSnapshot(next);
+      }
+    }, SNAPSHOT_RETRY_MS);
+  }
+
+  private sendSnapshot(target: string) {
+    if (!this.sendScene) {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const all = this.api.getSceneElementsIncludingDeleted() as unknown as Array<Record<string, any>>;
+    for (const element of all) {
+      this.knownVersions.set(element.id, this.signature(element));
+    }
+    this.sendPendingFiles(all, target);
+    this.sendScene(all, target);
   }
 
   private members(): RoomMember[] {

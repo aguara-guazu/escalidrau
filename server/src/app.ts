@@ -150,8 +150,13 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
     }
     try {
       const content = await readFile(filePath);
+      // index.html must never be cached: it points at hashed asset names, so a
+      // stale copy keeps loading a previous build after an app update. The
+      // hashed assets themselves are immutable.
+      const isEntry = filePath.endsWith("index.html");
       response.writeHead(200, {
-        "Content-Type": MIME_TYPES[extname(filePath)] ?? "application/octet-stream"
+        "Content-Type": MIME_TYPES[extname(filePath)] ?? "application/octet-stream",
+        "Cache-Control": isEntry ? "no-store" : "public, max-age=31536000, immutable"
       });
       response.end(content);
     } catch {

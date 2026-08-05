@@ -209,7 +209,10 @@ export default function App() {
     <div style={{ height: "100%", width: "100%" }}>
       <Excalidraw
         excalidrawAPI={handleApi}
-        onChange={() => syncRef.current?.onLocalChange()}
+        onChange={() => {
+          syncRef.current?.onLocalChange();
+          collabRef.current?.onLocalChange();
+        }}
         initialData={initialData}
         onLibraryChange={persistLibrary}
         libraryReturnUrl={window.location.origin}
