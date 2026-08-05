@@ -8,6 +8,8 @@ const CURSOR_SEND_MS = 40;
 const CURSOR_PUSH_MS = 40;
 const SCENE_FLUSH_MS = 150;
 const SNAPSHOT_RETRY_MS = 3000;
+const IDLE_AFTER_MS = 20_000;
+const IDLE_SWEEP_MS = 5000;
 
 // Distinct cursor colors; assignment is order-independent (sorted peer ids)
 // so every member sees the same color for the same person.
@@ -38,7 +40,13 @@ export type RoomMember = {
   nick: string;
   color: { background: string; stroke: string };
   isSelf: boolean;
+  isHost: boolean;
 };
+
+export type MemberEvent =
+  | { kind: "join"; nick: string }
+  | { kind: "leave"; nick: string }
+  | { kind: "host"; nick: string; isSelf: boolean };
 
 export type RoomInfo = {
   code: string;
@@ -72,11 +80,18 @@ export class CollabClient {
   private sceneFlushTimer: number | null = null;
   private snapshotSettled = false;
   private snapshotAskedTo = new Set<string>();
+  private ownerId: string | null = null;
+  private lastSeen = new Map<string, number>();
+  private idleTimer: number | null = null;
+  // Bumped on every join/leave; handlers bound to a previous session ignore
+  // late messages (e.g. a peer that was told the room is full).
+  private session = 0;
   private sendScene: ((elements: unknown[], target?: string) => void) | null = null;
   private sendFiles: ((files: unknown, target?: string) => void) | null = null;
   private askSnapshot: ((target: string) => void) | null = null;
   onRoomChange: (info: RoomInfo | null) => void = () => {};
   onRoomFull: () => void = () => {};
+  onMemberEvent: (event: MemberEvent) => void = () => {};
 
   constructor(api: ExcalidrawImperativeAPI) {
     this.api = api;
@@ -99,10 +114,15 @@ export class CollabClient {
     this.snapshotAskedTo.clear();
     // The room creator is the initial source of truth; joiners pull a snapshot.
     this.snapshotSettled = isOwner;
+    this.ownerId = isOwner ? selfId : null;
+    this.lastSeen.clear();
     const room = joinRoom({ appId: APP_ID }, this.code);
     this.room = room;
+    this.session += 1;
+    const session = this.session;
+    const stale = () => session !== this.session;
 
-    const hello = room.makeAction<{ nick: string }>("hello");
+    const hello = room.makeAction<{ nick: string; owner?: boolean }>("hello");
     const cursor = room.makeAction<{ x: number; y: number; b?: number }>("cursor");
     const full = room.makeAction<boolean>("full");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,47 +138,78 @@ export class CollabClient {
     this.askSnapshot = (target) => void snapReq.send(true, { target });
 
     scene.onMessage = (data) => {
+      if (stale()) {
+        return;
+      }
       const elements = (data?.elements ?? []) as Array<Record<string, unknown>>;
       if (elements.length > 0) {
         this.applyRemoteElements(elements);
       }
     };
     files.onMessage = (data) => {
+      if (stale()) {
+        return;
+      }
       const payload = data?.files as Record<string, unknown> | undefined;
       if (payload) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.api.addFiles(Object.values(payload) as any);
       }
     };
-    snapReq.onMessage = (_data, context) => this.sendSnapshot(context.peerId);
+    snapReq.onMessage = (_data, context) => {
+      if (stale()) {
+        return;
+      }
+      this.sendSnapshot(context.peerId);
+    };
 
     room.onPeerJoin = (peerId: string) => {
+      if (stale()) {
+        return;
+      }
       // The owner enforces the room limit; late arrivals are turned away.
       if (this.isOwner && this.peers.size + 1 >= MAX_MEMBERS) {
         void full.send(true, { target: peerId });
         return;
       }
-      void hello.send({ nick: this.nick }, { target: peerId });
+      void hello.send({ nick: this.nick, owner: this.isOwner }, { target: peerId });
     };
     hello.onMessage = (data, context) => {
+      if (stale()) {
+        return;
+      }
       const peerId = context.peerId;
       const nickname = String(data?.nick ?? "anon").slice(0, 24);
       const known = this.peers.has(peerId);
+      if (this.isOwner && !known && this.peers.size + 1 >= MAX_MEMBERS) {
+        void full.send(true, { target: peerId });
+        return;
+      }
       this.peers.set(peerId, { nick: nickname });
+      this.lastSeen.set(peerId, Date.now());
+      if (data?.owner) {
+        this.ownerId = peerId;
+      }
       if (!known) {
         // Greet back so both sides know each other regardless of join order.
-        void hello.send({ nick: this.nick }, { target: peerId });
+        void hello.send({ nick: this.nick, owner: this.isOwner }, { target: peerId });
+        this.onMemberEvent({ kind: "join", nick: nickname });
       }
       this.maybeRequestSnapshot(peerId);
       this.notify();
     };
     cursor.onMessage = (data, context) => {
+      if (stale()) {
+        return;
+      }
       const peer = this.peers.get(context.peerId);
       if (!peer) {
         return;
       }
+      this.lastSeen.set(context.peerId, Date.now());
       this.collaborators.set(context.peerId, {
         username: peer.nick,
+        userState: "active",
         color: this.colorOf(context.peerId),
         pointer: { x: data.x, y: data.y, tool: "pointer" },
         button: data.b ? "down" : "up"
@@ -166,15 +217,41 @@ export class CollabClient {
       this.pushCollaborators();
     };
     full.onMessage = () => {
+      if (stale()) {
+        return;
+      }
       this.leave();
       this.onRoomFull();
     };
     room.onPeerLeave = (peerId: string) => {
+      if (stale()) {
+        return;
+      }
+      const nick = this.peers.get(peerId)?.nick;
       this.peers.delete(peerId);
       this.collaborators.delete(peerId);
+      this.lastSeen.delete(peerId);
       this.pushCollaborators();
+      if (nick) {
+        this.onMemberEvent({ kind: "leave", nick });
+      }
+      // Everyone replicates the scene, so losing the host does not end the
+      // room: the lowest peer id takes over (same winner on every side).
+      if (peerId === this.ownerId) {
+        const candidates = [selfId, ...this.peers.keys()].sort();
+        const elected = candidates[0];
+        this.ownerId = elected;
+        this.isOwner = elected === selfId;
+        this.snapshotSettled = true;
+        this.onMemberEvent({
+          kind: "host",
+          nick: this.isOwner ? this.nick : this.peers.get(elected)?.nick ?? "someone",
+          isSelf: this.isOwner
+        });
+      }
       this.notify();
     };
+    this.startIdleSweep();
     this.notify();
   }
 
@@ -184,6 +261,7 @@ export class CollabClient {
     }
     void this.room.leave();
     this.room = null;
+    this.session += 1;
     this.sendCursor = null;
     this.sendScene = null;
     this.sendFiles = null;
@@ -330,13 +408,15 @@ export class CollabClient {
       id: selfId,
       nick: this.nick,
       color: this.colorOf(selfId),
-      isSelf: true
+      isSelf: true,
+      isHost: this.ownerId === selfId
     };
     const others = [...this.peers.entries()].map(([id, peer]) => ({
       id,
       nick: peer.nick,
       color: this.colorOf(id),
-      isSelf: false
+      isSelf: false,
+      isHost: this.ownerId === id
     }));
     return [self, ...others];
   }
@@ -357,6 +437,29 @@ export class CollabClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.api.updateScene({ collaborators: new Map(this.collaborators) as any });
     }, CURSOR_PUSH_MS);
+  }
+
+  // Cursors of people who stopped moving fade to idle instead of lingering
+  // as if they were still there.
+  private startIdleSweep() {
+    if (this.idleTimer !== null) {
+      return;
+    }
+    this.idleTimer = window.setInterval(() => {
+      const now = Date.now();
+      let changed = false;
+      for (const [peerId, collaborator] of this.collaborators) {
+        const idle = now - (this.lastSeen.get(peerId) ?? 0) > IDLE_AFTER_MS;
+        const state = idle ? "idle" : "active";
+        if (collaborator.userState !== state) {
+          this.collaborators.set(peerId, { ...collaborator, userState: state });
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.pushCollaborators();
+      }
+    }, IDLE_SWEEP_MS);
   }
 
   private notify() {

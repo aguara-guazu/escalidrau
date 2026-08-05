@@ -29,6 +29,17 @@ Drag **Escalidrau** to Applications and open it. This command always fetches the
 
 The menu shows the status of each integration and refreshes on its own. Node is not required: the integrations run on the app's embedded runtime.
 
+## Collaborate with other people (P2P)
+
+Click the collaboration button (top right), pick a name and create a room: you get a code to share. Anyone with the code joins from their own Escalidrau — up to 10 people. You see each other's cursors live, labeled and color-coded, and the canvas stays in sync for everybody.
+
+It is peer-to-peer over WebRTC: the drawing travels directly between participants and never touches a server of ours (a public relay is used only so peers can find each other). Consequences worth knowing:
+
+- **Nothing is stored.** The room's content only exists in the participants' apps. Whoever wants to keep it must save it locally (menu → "Save to file"); the app also asks when you close it.
+- **The room outlives its host.** Everyone replicates the scene, so if the host leaves, the remaining participants keep going and one of them becomes the new host.
+- **Each participant keeps their own agent.** Your MCP agent sees the shared canvas, including what other people draw — so several humans and several agents can work on the same diagram.
+- Some restrictive networks block direct connections; if a peer cannot connect, that is why.
+
 ## Usage
 
 With an agent connected and the app open:

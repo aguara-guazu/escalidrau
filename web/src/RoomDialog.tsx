@@ -105,7 +105,8 @@ export function RoomDialog({ open, info, error, onCreate, onJoin, onLeave, onClo
             </button>
             <div style={{ fontSize: 13, opacity: 0.75 }}>
               Share the code; up to 10 people. Nothing is stored anywhere — whoever wants to
-              keep the result must save it locally.
+              keep the result must save it locally. If the host leaves, the room keeps going
+              with whoever is still connected.
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {info.members.map((member) => (
@@ -121,6 +122,7 @@ export function RoomDialog({ open, info, error, onCreate, onJoin, onLeave, onClo
                   />
                   {member.nick}
                   {member.isSelf ? " (you)" : ""}
+                  {member.isHost ? " · host" : ""}
                 </div>
               ))}
             </div>

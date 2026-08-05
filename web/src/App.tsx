@@ -82,6 +82,17 @@ export default function App() {
         setRoomError("That room is full (10 people max).");
         setRoomOpen(true);
       };
+      collab.onMemberEvent = (event) => {
+        const message =
+          event.kind === "join"
+            ? `${event.nick} joined the room`
+            : event.kind === "leave"
+              ? `${event.nick} left the room`
+              : event.isSelf
+                ? "The host left — you are the host now"
+                : `The host left — ${event.nick} is the host now`;
+        api.setToast({ message, duration: 3000 });
+      };
       collabRef.current = collab;
       // Deep link / testing: ?room=CODE&nick=NAME[&owner=1] joins on load.
       const params = new URLSearchParams(window.location.search);
