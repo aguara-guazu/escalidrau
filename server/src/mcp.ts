@@ -31,6 +31,7 @@ Example:
  {"id":"db","type":"rectangle","x":420,"y":100,"width":180,"height":70,"label":{"text":"DB"}},
  {"type":"arrow","x":280,"y":135,"start":{"id":"api"},"end":{"id":"db"}}]
 
+Size shapes to their text (default font ~= 11px per character): usable width is width - 30px for rectangles, 70% of width for ellipses, 50% for diamonds — the longest unbreakable word must fit or it breaks mid-word. Leave ~12px per label character of gap between shapes joined by a labeled arrow.
 After a batch of edits, call view_canvas to visually verify the result.`;
 
 export type SessionContext = {
@@ -46,10 +47,24 @@ export type SessionContext = {
  * made since the model's previous call — this is what keeps the model aware
  * of the user's side of the collaboration.
  */
+const SERVER_INSTRUCTIONS = `Escalidrau is a live whiteboard shared in real time with a human collaborator.
+
+MANDATORY WORKFLOW: after every batch of canvas edits (add_elements, update_elements, move_elements, import_mermaid), call view_canvas, look at the image and fix rendering problems BEFORE reporting the work as done. Look for: text overflowing its shape or breaking mid-word, labels overlapping other elements, arrows crossing shapes or too short for their labels, and overlapping diagram parts.
+
+SIZING RULES (default font ~= 11px of width per character):
+- A shape must fit its longest unbreakable word. Usable width: rectangles = width - 30px; ellipses = 70% of width; diamonds = 50% of width.
+- Resizing an existing shape does NOT re-wrap its label; delete and re-add the shape with the right size instead.
+- Between shapes connected by a labeled arrow, leave a gap of at least 12px per label character.
+
+The human edits concurrently: tool responses open with a digest of their changes — read it and never overwrite their work blindly.`;
+
 const SCENE_URI = "scene://current";
 
 export function createSessionServer({ store, bridge, tracker, canvasUrl }: SessionContext) {
-  const server = new McpServer({ name: "escalidrau", version: "0.1.0" });
+  const server = new McpServer(
+    { name: "escalidrau", version: "0.1.0" },
+    { instructions: SERVER_INSTRUCTIONS }
+  );
   let cursor = tracker.current;
 
   // Standards-aligned change signal: the scene is a subscribable MCP resource
@@ -119,6 +134,18 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
     content: [...digest(), { type: "text" as const, text: JSON.stringify(value) }]
   });
 
+  const VERIFY_REMINDER: TextContent = {
+    type: "text",
+    text: "Reminder: when this batch of edits is complete, call view_canvas and fix anything that renders badly (overflowing or mid-word-broken text, overlapping labels, arrows crossing shapes) before finishing."
+  };
+  const mutationResult = (value: unknown) => ({
+    content: [
+      ...digest(),
+      { type: "text" as const, text: JSON.stringify(value) },
+      VERIFY_REMINDER
+    ]
+  });
+
   server.registerTool(
     "get_scene",
     {
@@ -134,7 +161,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
       description: ADD_ELEMENTS_DESCRIPTION,
       inputSchema: { elements: z.array(elementSkeleton).min(1) }
     },
-    async ({ elements }) => jsonResult(await bridge.request("add_elements", { elements }))
+    async ({ elements }) => mutationResult(await bridge.request("add_elements", { elements }))
   );
 
   server.registerTool(
@@ -144,7 +171,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
         "Update existing canvas elements in place. Each entry needs the element \"id\" plus the properties to change (strokeColor, backgroundColor, angle, width, height, ...). Changing \"text\" does not re-measure the element; prefer delete + add for text size changes. To move elements spatially prefer move_elements — it carries labels, groups and connected arrows along; changing x/y here moves the lone element only.",
       inputSchema: { updates: z.array(elementUpdate).min(1) }
     },
-    async ({ updates }) => jsonResult(await bridge.request("update_elements", { updates }))
+    async ({ updates }) => mutationResult(await bridge.request("update_elements", { updates }))
   );
 
   server.registerTool(
@@ -185,7 +212,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
         "Render a Mermaid definition (flowchart, sequence, class) onto the shared canvas as editable elements. Content is placed below the existing scene. Use this when the user hands you Mermaid syntax; for new diagrams prefer add_elements.",
       inputSchema: { mermaid: z.string().min(1) }
     },
-    async ({ mermaid }) => jsonResult(await bridge.request("import_mermaid", { mermaid }, 30_000))
+    async ({ mermaid }) => mutationResult(await bridge.request("import_mermaid", { mermaid }, 30_000))
   );
 
   server.registerTool(
@@ -208,7 +235,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
         scope: z.enum(["part", "element"]).default("part")
       }
     },
-    async ({ moves, scope }) => jsonResult(await bridge.request("move_elements", { moves, scope }))
+    async ({ moves, scope }) => mutationResult(await bridge.request("move_elements", { moves, scope }))
   );
 
   server.registerTool(
