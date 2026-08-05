@@ -1,57 +1,76 @@
 # Escalidrau
 
-A macOS desktop whiteboard where you and your local AI agent draw together, in real time, on the same canvas. The app embeds an MCP server: any compatible client (Claude Code, Claude Desktop, Codex, ...) can read the canvas, draw, rearrange diagrams and export images while you edit by hand.
+**A whiteboard for thinking out loud — with your AI and with your people, on the same canvas.**
+
+Escalidrau is a macOS desktop app where you sketch diagrams by hand while your local AI agent draws right along with you: ask for the architecture of a system and it appears on your screen as it goes, fix it together, and when you want to show it to someone, invite them into a live jam.
+
+![The Escalidrau canvas with a serverless architecture diagram](docs/canvas.png)
 
 ## Install
 
-macOS Apple Silicon (M1 or later). In a terminal:
+Copy this into a terminal (macOS, Apple Silicon):
 
 ```bash
 curl -fL https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-arm64.dmg -o /tmp/Escalidrau.dmg && open /tmp/Escalidrau.dmg
 ```
 
-Drag **Escalidrau** to Applications and open it. This command always fetches the latest release.
+Drag **Escalidrau** to Applications, open it, and you are done. From then on it updates itself.
 
-> If you download the DMG with a browser or receive it through chat instead, macOS will claim the app "is damaged" (the app is not notarized, and downloads get quarantined). Fix:
-> ```bash
-> xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
-> ```
+## Draw with your agent
 
-## Connect your agent
+You connect your agent once, from the app's **MCP** menu: one click for Claude Code, Claude Desktop or Codex. Nothing else to install.
 
-1. Open Escalidrau. The MCP server is available at `http://localhost:3580/mcp` while the app is running.
-2. In the menu bar, open **MCP**:
-   - **Add to Claude Code** — registers it with the Claude Code CLI (user scope).
-   - **Add to Claude Desktop** — writes the connector into its configuration; restart Claude Desktop afterwards.
-   - **Add to Codex** — adds it to `~/.codex/config.toml`.
-   - **Install Claude Code hook** — with this, every message you send in Claude Code automatically informs it about your recent canvas edits.
-   - **Copy MCP server URL** — to manually connect any other client that speaks MCP over HTTP.
+After that it is all conversation:
 
-The menu shows the status of each integration and refreshes on its own. Node is not required: the integrations run on the app's embedded runtime.
+- *"Draw the checkout flow with API Gateway, Lambda and DynamoDB"* → it appears on your canvas as it is written.
+- *"Separate the diagrams that overlap and lay everything out horizontally"* → each diagram moves as a whole, arrows and labels included.
+- *"Export it as a PNG to my desktop"* → ready to drop into a doc or a ticket.
 
-## Collaborate with other people (P2P)
+Your agent **looks** at what it drew: it inspects the canvas and fixes what came out wrong — text overflowing a shape, crossed arrows, overlapping parts — before telling you it is done. It also sees what *you* do: move a box or change a label and it works from there.
 
-Click **Start group jam** (top right), pick a name and start a jam: you get a code to share. While the jam is live the button turns into the room code plus a **Leave jam** button. Anyone with the code joins from their own Escalidrau — up to 10 people. You see each other's cursors live, labeled and color-coded, and the canvas stays in sync for everybody.
+Installed icon packs? It uses them. With the AWS pack, an AWS diagram comes out with the real icons:
 
-It is peer-to-peer over WebRTC: the drawing travels directly between participants and never touches a server of ours (a public relay is used only so peers can find each other). Consequences worth knowing:
+![Exported diagram using AWS icons](docs/export.png)
 
-- **Nothing is stored.** The room's content only exists in the participants' apps. Whoever wants to keep it must save it locally (menu → "Save to file"); the app also asks when you close it.
-- **The room outlives its host.** Everyone replicates the scene, so if the host leaves, the remaining participants keep going and one of them becomes the new host.
-- **Each participant keeps their own agent.** Your MCP agent sees the shared canvas, including what other people draw — so several humans and several agents can work on the same diagram.
-- Some restrictive networks block direct connections; if a peer cannot connect, that is why.
+## Jams: drawing with other people
 
-## Usage
+Hit **Start group jam**, get a code, share it. Up to 10 people on the same canvas: you see each other's cursors live, each with their name and colour, and whatever anyone draws shows up on everyone's screen.
 
-With an agent connected and the app open:
+![A jam with three people collaborating on the same diagram](docs/jam.png)
 
-- **Ask it to draw**: "draw my API architecture on the canvas". Whatever it draws appears instantly in your window. If you installed icon packs from the library catalog (AWS services, for example), the agent can browse them and build diagrams with the real icons.
-- **Edit anything by hand**: move, delete, change text. The agent learns about your changes (through the hook on each message, or instantly if it is listening with the `wait_for_user_changes` tool).
-- **Ask it to rearrange**: "separate the overlapping diagrams", "lay everything out horizontally". The layout tools move each diagram as a whole (boxes, arrows and labels together).
-- **Export**: "export the canvas as PNG to ~/Desktop/diagram.png", or use the app menu. You can also convert the diagram to **Mermaid** (menu → "Copy as Mermaid", or ask the agent) to paste it into markdown, and import Mermaid syntax onto the canvas (menu → "Import Mermaid…").
+While the jam is live, the button turns into the room code plus a **Leave jam** button.
 
-Exposed MCP tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
+The nice part of the model: **the drawing travels straight between the computers** (peer to peer, like the multiplayer in a shooter), without passing through any server of ours. Which means:
 
-## Development
+- **Nothing is stored anywhere.** What you draw exists only in the apps of the people connected — whoever wants to keep it saves it on their machine (the app asks when you close it).
+- **The room does not depend on whoever created it.** If the host leaves, everyone else keeps drawing and someone takes over automatically.
+- **Everyone keeps their own agent.** It can be three people and three AIs on the same diagram.
+
+## What else is in the box
+
+- **Mermaid both ways.** Paste a `flowchart` and it becomes an editable drawing; or turn what you drew into Mermaid to paste into a README.
+- **Drag and drop.** Drop an `.excalidraw` file or a Mermaid file on the window and it offers to import it.
+- **Icon packs.** Install any of them from the public catalog in one click; they stay installed.
+- **It updates itself.** On launch it fetches the latest version, installs it while showing you the progress, and tells you what changed.
+- **Export** to PNG, SVG, or a file you can keep editing later.
+
+## Quick answers
+
+**Do I need an account?** No. No login, no servers, no telemetry.
+
+**It says the app "is damaged".** That happens when you download the DMG with a browser or get it over chat, because the app is not signed by Apple. The install command above avoids it. If it already happened:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
+```
+
+**Intel Macs or Windows?** Apple Silicon only for now.
+
+**Someone cannot join a jam.** Some restrictive networks block direct computer-to-computer connections. That is the network, not the app.
+
+## For developers
+
+While the app is open it exposes an MCP server at `http://localhost:3580/mcp` with these tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
 
 ```bash
 npm install
@@ -60,18 +79,6 @@ npm run app    # Electron app in dev mode
 npm run dist   # builds the DMG into desktop/release/
 ```
 
-## Updates
-
-Escalidrau keeps itself up to date: on launch it checks the latest release, and if there is a newer version it downloads and installs it before opening, showing a splash with progress (you can always continue without updating). Once the app opens on a new version, a modal summarises what changed.
-
-The app is not signed or notarized, so the standard macOS update mechanism cannot be used; the bundle is replaced by hand from the published disk image. The download happens over HTTPS from inside the app, which is what keeps Gatekeeper's quarantine out of the way, and the swap keeps a backup so a failed update can roll back.
-
-## Known limitations
-
-- The scene lives in memory: closing the app loses anything not exported (save with menu → "Save to file").
-- Apple Silicon only, for now.
-- One instance per machine (port 3580).
-
 ## License
 
-MIT — see [LICENSE](LICENSE), which includes attribution for redistributed dependencies.
+MIT — see [LICENSE](LICENSE), which includes attribution for the dependencies the app redistributes.
