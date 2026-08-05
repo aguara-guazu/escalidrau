@@ -31,7 +31,7 @@ The menu shows the status of each integration and refreshes on its own. Node is 
 
 ## Collaborate with other people (P2P)
 
-Click the collaboration button (top right), pick a name and create a room: you get a code to share. Anyone with the code joins from their own Escalidrau — up to 10 people. You see each other's cursors live, labeled and color-coded, and the canvas stays in sync for everybody.
+Click **Start group jam** (top right), pick a name and start a jam: you get a code to share. While the jam is live the button turns into the room code plus a **Leave jam** button. Anyone with the code joins from their own Escalidrau — up to 10 people. You see each other's cursors live, labeled and color-coded, and the canvas stays in sync for everybody.
 
 It is peer-to-peer over WebRTC: the drawing travels directly between participants and never touches a server of ours (a public relay is used only so peers can find each other). Consequences worth knowing:
 

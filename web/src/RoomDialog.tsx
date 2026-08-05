@@ -89,7 +89,7 @@ export function RoomDialog({ open, info, error, onCreate, onJoin, onLeave, onClo
         {info ? (
           <>
             <h2 style={{ margin: 0, fontSize: 16 }}>
-              Room {info.isOwner ? "(you are the host)" : ""}
+              Jam {info.isOwner ? "(you are the host)" : ""}
             </h2>
             <div style={codeStyle}>{info.code}</div>
             <button
@@ -134,13 +134,13 @@ export function RoomDialog({ open, info, error, onCreate, onJoin, onLeave, onClo
                 style={{ ...buttonStyle, background: "#e03131", borderColor: "#e03131", color: "#fff" }}
                 onClick={onLeave}
               >
-                Leave room
+                Leave jam
               </button>
             </div>
           </>
         ) : (
           <>
-            <h2 style={{ margin: 0, fontSize: 16 }}>Collaborate live (P2P)</h2>
+            <h2 style={{ margin: 0, fontSize: 16 }}>Group jam (P2P)</h2>
             <label style={{ fontSize: 13 }}>
               Your name
               <input
@@ -159,7 +159,7 @@ export function RoomDialog({ open, info, error, onCreate, onJoin, onLeave, onClo
                 onCreate(createRoomCode(), nick);
               }}
             >
-              Create a room
+              Start the jam
             </button>
             <div style={{ textAlign: "center", fontSize: 12, opacity: 0.6 }}>— or join one —</div>
             <div style={{ display: "flex", gap: 8 }}>

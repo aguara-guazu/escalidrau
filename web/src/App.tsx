@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Excalidraw,
-  LiveCollaborationTrigger,
   MainMenu,
   WelcomeScreen,
   loadFromBlob,
@@ -11,6 +10,7 @@ import type { ExcalidrawImperativeAPI, LibraryItems } from "@excalidraw/excalidr
 import { SyncClient } from "./sync";
 import { CollabClient, type RoomInfo } from "./collab";
 import { RoomDialog } from "./RoomDialog";
+import { JamButton } from "./JamButton";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { copyIcon, importIcon, trashIcon } from "./icons";
@@ -230,11 +230,21 @@ export default function App() {
         isCollaborating={roomInfo !== null}
         onPointerUpdate={(payload) => collabRef.current?.handlePointer(payload)}
         renderTopRightUI={() => (
-          <LiveCollaborationTrigger
-            isCollaborating={roomInfo !== null}
-            onSelect={() => {
+          <JamButton
+            active={roomInfo !== null}
+            code={roomInfo?.code ?? null}
+            members={roomInfo?.members.length ?? 0}
+            onStart={() => {
               setRoomError(null);
               setRoomOpen(true);
+            }}
+            onShowRoom={() => {
+              setRoomError(null);
+              setRoomOpen(true);
+            }}
+            onLeave={() => {
+              collabRef.current?.leave();
+              apiRef.current?.setToast({ message: "You left the jam", duration: 2000 });
             }}
           />
         )}
