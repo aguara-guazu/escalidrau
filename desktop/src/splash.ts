@@ -1,8 +1,20 @@
 import { BrowserWindow } from "electron";
+// Same family the app's UI uses (--ui-font), inlined at build time.
+import assistantRegular from "../../node_modules/@excalidraw/excalidraw/dist/prod/fonts/Assistant/Assistant-Regular.woff2";
+import assistantSemiBold from "../../node_modules/@excalidraw/excalidraw/dist/prod/fonts/Assistant/Assistant-SemiBold.woff2";
+
+const fontFace = (weight: number, data: string) => `@font-face {
+    font-family: Assistant;
+    src: url("data:font/woff2;base64,${data}") format("woff2");
+    font-weight: ${weight};
+    font-style: normal;
+  }`;
 
 const HTML = `<!doctype html>
 <meta charset="utf-8">
 <style>
+  ${fontFace(400, assistantRegular)}
+  ${fontFace(600, assistantSemiBold)}
   :root { color-scheme: light dark; }
   body {
     margin: 0;
@@ -12,13 +24,13 @@ const HTML = `<!doctype html>
     align-items: center;
     justify-content: center;
     gap: 14px;
-    font-family: -apple-system, system-ui, sans-serif;
+    font-family: Assistant, system-ui, -apple-system, sans-serif;
     background: linear-gradient(160deg, #7b6ff0, #5b50c8);
     color: #fff;
     user-select: none;
     -webkit-app-region: drag;
   }
-  h1 { margin: 0; font-size: 19px; letter-spacing: 0.2px; }
+  h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: 0.2px; }
   #status { font-size: 13px; opacity: 0.9; min-height: 18px; }
   #track {
     width: 260px;
