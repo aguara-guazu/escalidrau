@@ -121,11 +121,14 @@ export async function downloadUpdate(
  * Mounts the DMG, stages the new bundle next to the current one and swaps it in
  * one move, so a failed copy can never leave a half-written app behind.
  */
+// fs.rm cannot always finish off a bundle whose binary was mapped by a running
+// process (it leaves a skeleton behind), so removals go through /bin/rm.
+const removeTree = (path: string) => run("/bin/rm", ["-rf", path]).catch(() => undefined);
+
 /** Removes staging and backup bundles left by an earlier update. */
 export async function cleanupLeftovers(bundlePath: string): Promise<void> {
-  for (const suffix of [".previous", ".incoming"]) {
-    await rm(`${bundlePath}${suffix}`, { recursive: true, force: true }).catch(() => undefined);
-  }
+  await removeTree(`${bundlePath}.previous`);
+  await removeTree(`${bundlePath}.incoming`);
 }
 
 export async function installUpdate(
@@ -151,8 +154,8 @@ export async function installUpdate(
     }
     const staged = `${bundlePath}.incoming`;
     const backup = `${bundlePath}.previous`;
-    await rm(staged, { recursive: true, force: true });
-    await rm(backup, { recursive: true, force: true });
+    await removeTree(staged);
+    await removeTree(backup);
     await run("ditto", [source, staged]);
     await run("xattr", ["-dr", "com.apple.quarantine", staged]).catch(() => undefined);
     // Move the old bundle aside instead of deleting it, so a failed swap can be
@@ -167,7 +170,7 @@ export async function installUpdate(
     // The backup is the bundle this process is executing from, so macOS can
     // refuse to delete parts of it; leaving it behind must never fail the
     // update (cleanupLeftovers removes it on the next launch).
-    await rm(backup, { recursive: true, force: true }).catch(() => undefined);
+    await removeTree(backup);
   } finally {
     await run("hdiutil", ["detach", mountPoint, "-force"]).catch(() => undefined);
     await rm(mountPoint, { recursive: true, force: true }).catch(() => undefined);
