@@ -27,6 +27,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build -w web
+      # Bundles the Electron main process, the MCP bridge and the hook.
+      - run: npm run build -w desktop
       - run: npx electron-builder --${{ matrix.platform }} --publish never
         working-directory: desktop
         env:
