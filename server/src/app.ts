@@ -113,7 +113,20 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
         transports.delete(transport.sessionId);
       }
     };
-    const sessionServer = createSessionServer({ store, bridge, tracker, canvasUrl });
+    const sessionServer = createSessionServer({
+      store,
+      bridge,
+      tracker,
+      canvasUrl,
+      readLibrary: async () => {
+        try {
+          const parsed = JSON.parse(await readFile(libraryPath, "utf8")) as unknown;
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+    });
     await sessionServer.connect(transport);
     await transport.handleRequest(request, response, body);
   };

@@ -39,7 +39,25 @@ export type SessionContext = {
   bridge: CanvasBridge;
   tracker: ChangeTracker;
   canvasUrl: string;
+  readLibrary: () => Promise<unknown[]>;
 };
+
+type StoredLibraryItem = {
+  id?: string;
+  name?: string;
+  elements: Array<Record<string, unknown>>;
+};
+
+const normalizeLibrary = (raw: unknown[]): StoredLibraryItem[] =>
+  raw
+    .map((entry) => {
+      if (Array.isArray(entry)) {
+        return { elements: entry as Array<Record<string, unknown>> };
+      }
+      const item = entry as StoredLibraryItem;
+      return item && Array.isArray(item.elements) ? item : null;
+    })
+    .filter((item): item is StoredLibraryItem => item !== null);
 
 /**
  * Builds one McpServer per HTTP session. The session keeps a cursor into the
@@ -56,11 +74,13 @@ SIZING RULES (default font ~= 11px of width per character):
 - Resizing an existing shape does NOT re-wrap its label; delete and re-add the shape with the right size instead.
 - Between shapes connected by a labeled arrow, leave a gap of at least 12px per label character.
 
+If installed library icons match the diagram's domain (check get_library), prefer placing them with add_library_item over drawing generic shapes.
+
 The human edits concurrently: tool responses open with a digest of their changes — read it and never overwrite their work blindly.`;
 
 const SCENE_URI = "scene://current";
 
-export function createSessionServer({ store, bridge, tracker, canvasUrl }: SessionContext) {
+export function createSessionServer({ store, bridge, tracker, canvasUrl, readLibrary }: SessionContext) {
   const server = new McpServer(
     { name: "escalidrau", version: "0.1.0" },
     { instructions: SERVER_INSTRUCTIONS }
@@ -213,6 +233,95 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl }: Sessi
       inputSchema: { mermaid: z.string().min(1) }
     },
     async ({ mermaid }) => mutationResult(await bridge.request("import_mermaid", { mermaid }, 30_000))
+  );
+
+  server.registerTool(
+    "get_library",
+    {
+      description:
+        "List the shape-library items installed in the app (icon packs like AWS services). Returns each item's index and name. When a diagram's domain matches installed icons, prefer placing them (add_library_item) over drawing plain shapes; use view_library to see what they look like.",
+      inputSchema: {}
+    },
+    async () => {
+      const items = normalizeLibrary(await readLibrary());
+      return jsonResult({
+        count: items.length,
+        items: items.map((item, index) => ({
+          index,
+          name: item.name ?? null,
+          elements: item.elements.length
+        }))
+      });
+    }
+  );
+
+  server.registerTool(
+    "view_library",
+    {
+      description:
+        "Render installed library items as a labeled contact-sheet image so you can see what each icon looks like. Paginate with offset/limit; labels show the index to use with add_library_item.",
+      inputSchema: {
+        offset: z.number().int().min(0).default(0),
+        limit: z.number().int().min(1).max(40).default(24)
+      }
+    },
+    async ({ offset, limit }) => {
+      const items = normalizeLibrary(await readLibrary());
+      const page = items.slice(offset, offset + limit);
+      if (page.length === 0) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `No library items in range (library has ${items.length}).`
+            }
+          ]
+        };
+      }
+      const payload = page.map((item, position) => ({
+        label: `${offset + position}${item.name ? ` ${item.name}` : ""}`,
+        elements: item.elements
+      }));
+      const result = (await bridge.request("render_library", { items: payload }, 30_000)) as {
+        data: string;
+      };
+      return {
+        content: [
+          ...digest(),
+          {
+            type: "text" as const,
+            text: `Library items ${offset}-${offset + page.length - 1} of ${items.length}. Place one with add_library_item { item: <index>, x, y }.`
+          },
+          { type: "image" as const, data: result.data, mimeType: "image/png" }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
+    "add_library_item",
+    {
+      description:
+        "Place an installed library icon on the canvas by its index (from get_library / view_library). x/y set the top-left of the placed item. The instance is independent — connect it with arrows or move it like any other part.",
+      inputSchema: {
+        item: z.number().int().min(0),
+        x: z.number(),
+        y: z.number()
+      }
+    },
+    async ({ item, x, y }) => {
+      const items = normalizeLibrary(await readLibrary());
+      const entry = items[item];
+      if (!entry) {
+        throw new Error(`No library item at index ${item} (library has ${items.length})`);
+      }
+      const result = await bridge.request(
+        "add_library_item",
+        { elements: entry.elements, x, y },
+        30_000
+      );
+      return mutationResult({ name: entry.name ?? null, ...(result as object) });
+    }
   );
 
   server.registerTool(

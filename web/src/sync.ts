@@ -20,7 +20,9 @@ type ServerRequest = {
     | "import_mermaid"
     | "export_image"
     | "export_scene"
-    | "view_canvas";
+    | "view_canvas"
+    | "render_library"
+    | "add_library_item";
   payload: Record<string, unknown>;
 };
 
@@ -41,6 +43,47 @@ const PUSH_DEBOUNCE_MS = 300;
 const RECONNECT_MS = 1000;
 
 const randomNonce = () => Math.floor(Math.random() * 2 ** 31);
+
+const freshId = () =>
+  Math.random().toString(36).slice(2, 11) + Math.random().toString(36).slice(2, 11);
+
+// Library items are element groups with internal references (groups, labels,
+// bindings); every placement must be an independent clone with remapped ids.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cloneLibraryElements = (elements: Array<Record<string, any>>): Array<Record<string, any>> => {
+  const idMap = new Map<string, string>();
+  const groupMap = new Map<string, string>();
+  for (const element of elements) {
+    idMap.set(element.id, freshId());
+  }
+  const mapId = (id: unknown) => (typeof id === "string" && idMap.get(id)) || id;
+  return elements.map((element) => ({
+    ...element,
+    id: idMap.get(element.id),
+    seed: randomNonce(),
+    version: 1,
+    versionNonce: randomNonce(),
+    isDeleted: false,
+    groupIds: ((element.groupIds as string[] | undefined) ?? []).map((groupId) => {
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, freshId());
+      }
+      return groupMap.get(groupId)!;
+    }),
+    containerId: element.containerId ? mapId(element.containerId) : element.containerId ?? null,
+    frameId: element.frameId ? mapId(element.frameId) : element.frameId ?? null,
+    boundElements: element.boundElements
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        element.boundElements.map((bound: any) => ({ ...bound, id: mapId(bound.id) }))
+      : element.boundElements ?? null,
+    startBinding: element.startBinding
+      ? { ...element.startBinding, elementId: mapId(element.startBinding.elementId) }
+      : element.startBinding ?? null,
+    endBinding: element.endBinding
+      ? { ...element.endBinding, elementId: mapId(element.endBinding.elementId) }
+      : element.endBinding ?? null
+  }));
+};
 
 const blobToDataUrl = (blob: Blob): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -189,6 +232,14 @@ export class SyncClient {
         };
       case "view_canvas":
         return this.viewCanvas(request.payload.ids as string[] | undefined);
+      case "render_library":
+        return this.renderLibrary(
+          request.payload.items as Array<{ label: string; elements: Array<Record<string, unknown>> }>
+        );
+      case "add_library_item":
+        return this.addLibraryItem(
+          request.payload as { elements: Array<Record<string, unknown>>; x: number; y: number }
+        );
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -518,23 +569,17 @@ export class SyncClient {
     return { addedIds: placed.map((element) => element.id) };
   }
 
-  // Agent-facing render: fits the longest side to ~1600px so text stays
-  // legible at the resolution vision models actually process.
-  private async viewCanvas(ids?: string[]) {
-    const all = this.api.getSceneElements();
-    const targets =
-      ids && ids.length > 0 ? all.filter((element) => ids.includes(element.id)) : all;
-    if (targets.length === 0) {
-      throw new Error("Nothing to render — the canvas (or that part) is empty");
-    }
-    const minX = Math.min(...targets.map((element) => element.x));
-    const minY = Math.min(...targets.map((element) => element.y));
-    const maxX = Math.max(...targets.map((element) => element.x + element.width));
-    const maxY = Math.max(...targets.map((element) => element.y + element.height));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async renderPng(elements: Array<Record<string, any>>) {
+    const minX = Math.min(...elements.map((element) => element.x as number));
+    const minY = Math.min(...elements.map((element) => element.y as number));
+    const maxX = Math.max(...elements.map((element) => (element.x as number) + (element.width as number)));
+    const maxY = Math.max(...elements.map((element) => (element.y as number) + (element.height as number)));
     const maxSide = Math.max(maxX - minX, maxY - minY) + 32;
     const scale = Math.min(3, Math.max(0.2, 1600 / maxSide));
     const blob = await exportToBlob({
-      elements: targets,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      elements: elements as any,
       appState: {
         ...this.api.getAppState(),
         exportBackground: true,
@@ -552,6 +597,90 @@ export class SyncClient {
     const dataUrl = await blobToDataUrl(blob);
     return { data: dataUrl.split(",")[1] };
   }
+
+  private async renderLibrary(
+    items: Array<{ label: string; elements: Array<Record<string, unknown>> }>
+  ) {
+    const columns = 5;
+    const gap = 48;
+    const labelHeight = 34;
+    const prepared = items.map(({ label, elements }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cloned = cloneLibraryElements(elements as Array<Record<string, any>>);
+      const minX = Math.min(...cloned.map((element) => element.x as number));
+      const minY = Math.min(...cloned.map((element) => element.y as number));
+      const width =
+        Math.max(...cloned.map((element) => (element.x as number) + (element.width as number))) - minX;
+      const height =
+        Math.max(...cloned.map((element) => (element.y as number) + (element.height as number))) - minY;
+      return { label, cloned, minX, minY, width, height };
+    });
+    const cellWidth = Math.max(...prepared.map((item) => item.width), 60) + gap;
+    const cellHeight = Math.max(...prepared.map((item) => item.height), 40) + labelHeight + gap;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sheet: Array<Record<string, any>> = [];
+    const labels: Array<Record<string, unknown>> = [];
+    prepared.forEach((item, position) => {
+      const offsetX = (position % columns) * cellWidth;
+      const offsetY = Math.floor(position / columns) * cellHeight;
+      const centering = (cellWidth - gap - item.width) / 2;
+      sheet.push(
+        ...item.cloned.map((element) => ({
+          ...element,
+          x: (element.x as number) - item.minX + offsetX + centering,
+          y: (element.y as number) - item.minY + offsetY
+        }))
+      );
+      labels.push({
+        type: "text",
+        x: offsetX,
+        y: offsetY + cellHeight - labelHeight - gap / 2,
+        text: item.label,
+        fontSize: 16
+      });
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const labelElements = convertToExcalidrawElements(labels as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.renderPng([...sheet, ...(labelElements as any)]);
+  }
+
+  private addLibraryItem(payload: {
+    elements: Array<Record<string, unknown>>;
+    x: number;
+    y: number;
+  }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cloned = cloneLibraryElements(payload.elements as Array<Record<string, any>>);
+    const minX = Math.min(...cloned.map((element) => element.x as number));
+    const minY = Math.min(...cloned.map((element) => element.y as number));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const placed: Array<Record<string, any>> = cloned.map((element) => ({
+      ...element,
+      x: (element.x as number) + payload.x - minX,
+      y: (element.y as number) + payload.y - minY
+    }));
+    this.api.updateScene({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      elements: [...this.api.getSceneElementsIncludingDeleted(), ...placed] as any,
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY
+    });
+    return { addedIds: placed.map((element) => element.id) };
+  }
+
+  // Agent-facing render: fits the longest side to ~1600px so text stays
+  // legible at the resolution vision models actually process.
+  private async viewCanvas(ids?: string[]) {
+    const all = this.api.getSceneElements();
+    const targets =
+      ids && ids.length > 0 ? all.filter((element) => ids.includes(element.id)) : all;
+    if (targets.length === 0) {
+      throw new Error("Nothing to render — the canvas (or that part) is empty");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.renderPng(targets as any);
+  }
+
 
   private async exportImage(payload: {
     format?: "png" | "svg";

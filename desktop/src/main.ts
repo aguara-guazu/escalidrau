@@ -1,5 +1,6 @@
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { BrowserWindow, app, dialog, shell } from "electron";
 import { startApp, type AppHandle } from "../../server/src/app.js";
 import { rebuildMenu } from "./menu.js";
@@ -8,6 +9,10 @@ const PORT = Number(process.env.PORT ?? 3580);
 const MCP_URL = `http://localhost:${PORT}/mcp`;
 const CANVAS_URL = `http://localhost:${PORT}`;
 const LIBRARIES_ORIGIN = "https://libraries.excalidraw.com";
+
+// Without this, userData defaults to the package name ("desktop") and lands
+// in a generically named directory.
+app.setName("Escalidrau");
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -166,15 +171,19 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
+    const dataDir = app.getPath("userData");
+    // One-time migration from builds whose userData dir was named "desktop".
+    const legacyLibrary = join(dirname(dataDir), "desktop", "library.json");
+    const currentLibrary = join(dataDir, "library.json");
+    if (!existsSync(currentLibrary) && existsSync(legacyLibrary)) {
+      mkdirSync(dataDir, { recursive: true });
+      copyFileSync(legacyLibrary, currentLibrary);
+    }
     const webDist = app.isPackaged
       ? join(process.resourcesPath, "web")
       : join(app.getAppPath(), "..", "web", "dist");
     try {
-      appHandle = await startApp({
-        port: PORT,
-        webDist,
-        dataDir: app.getPath("userData")
-      });
+      appHandle = await startApp({ port: PORT, webDist, dataDir });
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       dialog.showErrorBox(

@@ -33,12 +33,12 @@ The menu shows the status of each integration and refreshes on its own. Node is 
 
 With an agent connected and the app open:
 
-- **Ask it to draw**: "draw my API architecture on the canvas". Whatever it draws appears instantly in your window.
+- **Ask it to draw**: "draw my API architecture on the canvas". Whatever it draws appears instantly in your window. If you installed icon packs from the library catalog (AWS services, for example), the agent can browse them and build diagrams with the real icons.
 - **Edit anything by hand**: move, delete, change text. The agent learns about your changes (through the hook on each message, or instantly if it is listening with the `wait_for_user_changes` tool).
 - **Ask it to rearrange**: "separate the overlapping diagrams", "lay everything out horizontally". The layout tools move each diagram as a whole (boxes, arrows and labels together).
 - **Export**: "export the canvas as PNG to ~/Desktop/diagram.png", or use the app menu. You can also convert the diagram to **Mermaid** (menu → "Copy as Mermaid", or ask the agent) to paste it into markdown, and import Mermaid syntax onto the canvas (menu → "Import Mermaid…").
 
-Exposed MCP tools: `get_scene`, `get_layout`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
+Exposed MCP tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
 
 ## Development
 
