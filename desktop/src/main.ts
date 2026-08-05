@@ -6,6 +6,8 @@ import { rebuildMenu } from "./menu.js";
 
 const PORT = Number(process.env.PORT ?? 3580);
 const MCP_URL = `http://localhost:${PORT}/mcp`;
+const CANVAS_URL = `http://localhost:${PORT}`;
+const LIBRARIES_ORIGIN = "https://libraries.excalidraw.com";
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -13,6 +15,28 @@ if (!gotLock) {
 } else {
   let appHandle: AppHandle | null = null;
   let quitRequested = false;
+  let mainWindow: BrowserWindow | null = null;
+
+  const isLibraryReturn = (url: string) =>
+    url.startsWith(CANVAS_URL) && url.includes("addLibrary");
+
+  // The public libraries catalog redirects back to the canvas URL with the
+  // library reference in the hash; deliver that hash to the main window (its
+  // hashchange listener performs the import) instead of loading a second
+  // canvas in the catalog window.
+  const deliverLibrary = (url: string, contents: Electron.WebContents) => {
+    const hash = new URL(url).hash;
+    if (mainWindow && hash) {
+      void mainWindow.webContents.executeJavaScript(
+        `window.location.hash = ${JSON.stringify(hash)};`
+      );
+      mainWindow.focus();
+    }
+    const child = BrowserWindow.fromWebContents(contents);
+    if (child && child !== mainWindow) {
+      child.close();
+    }
+  };
 
   // The scene only lives in memory; offer to save it before the window goes.
   // Returns false to abort the close.
@@ -63,8 +87,20 @@ if (!gotLock) {
     });
     void window.loadURL(`http://localhost:${PORT}`);
     window.webContents.setWindowOpenHandler(({ url }) => {
+      if (url.startsWith(LIBRARIES_ORIGIN)) {
+        return {
+          action: "allow",
+          overrideBrowserWindowOptions: { width: 1100, height: 800 }
+        };
+      }
       void shell.openExternal(url);
       return { action: "deny" };
+    });
+    mainWindow = window;
+    window.on("closed", () => {
+      if (mainWindow === window) {
+        mainWindow = null;
+      }
     });
     window.on("close", (event) => {
       if (forceClose) {
@@ -87,6 +123,34 @@ if (!gotLock) {
     });
   };
 
+  app.on("web-contents-created", (_event, contents) => {
+    // The catalog uses window.open(returnUrl, "_excalidraw") as well as plain
+    // navigation; the main window overrides this handler with its own later.
+    contents.setWindowOpenHandler(({ url }) => {
+      if (isLibraryReturn(url)) {
+        deliverLibrary(url, contents);
+        return { action: "deny" };
+      }
+      if (url.startsWith(LIBRARIES_ORIGIN)) {
+        return { action: "allow" };
+      }
+      void shell.openExternal(url);
+      return { action: "deny" };
+    });
+    contents.on("will-navigate", (event, url) => {
+      if (contents !== mainWindow?.webContents && isLibraryReturn(url)) {
+        event.preventDefault();
+        deliverLibrary(url, contents);
+      }
+    });
+    contents.on("will-redirect", (event, url) => {
+      if (contents !== mainWindow?.webContents && isLibraryReturn(url)) {
+        event.preventDefault();
+        deliverLibrary(url, contents);
+      }
+    });
+  });
+
   app.on("before-quit", () => {
     quitRequested = true;
   });
@@ -106,7 +170,11 @@ if (!gotLock) {
       ? join(process.resourcesPath, "web")
       : join(app.getAppPath(), "..", "web", "dist");
     try {
-      appHandle = await startApp({ port: PORT, webDist });
+      appHandle = await startApp({
+        port: PORT,
+        webDist,
+        dataDir: app.getPath("userData")
+      });
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       dialog.showErrorBox(

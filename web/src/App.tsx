@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { Excalidraw, MainMenu, WelcomeScreen } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { Excalidraw, MainMenu, WelcomeScreen, useHandleLibrary } from "@excalidraw/excalidraw";
+import type { ExcalidrawImperativeAPI, LibraryItems } from "@excalidraw/excalidraw/types";
 import { SyncClient } from "./sync";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmResetDialog } from "./ConfirmResetDialog";
@@ -10,16 +10,37 @@ import "./debrand.css";
 export default function App() {
   const syncRef = useRef<SyncClient | null>(null);
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
   const [mermaidOpen, setMermaidOpen] = useState(false);
   const [mermaidBusy, setMermaidBusy] = useState(false);
   const [mermaidError, setMermaidError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  // Installed shape libraries live server-side (they must survive restarts).
+  const [initialData] = useState(() => ({
+    libraryItems: fetch("/library")
+      .then((response) => (response.ok ? response.json() : []))
+      .catch(() => []) as Promise<LibraryItems>
+  }));
+
+  // Handles the #addLibrary return from the public libraries site.
+  useHandleLibrary({ excalidrawAPI });
 
   const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api;
+    setExcalidrawAPI(api);
     if (!syncRef.current) {
       syncRef.current = new SyncClient(api);
     }
+  }, []);
+
+  const persistLibrary = useCallback((items: LibraryItems) => {
+    void fetch("/library", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(items)
+    }).catch(() => {
+      apiRef.current?.setToast({ message: "Could not persist the library", duration: 2500 });
+    });
   }, []);
 
   const copyAsMermaid = useCallback(async () => {
@@ -56,6 +77,9 @@ export default function App() {
       <Excalidraw
         excalidrawAPI={handleApi}
         onChange={() => syncRef.current?.onLocalChange()}
+        initialData={initialData}
+        onLibraryChange={persistLibrary}
+        libraryReturnUrl={window.location.origin}
       >
         <MainMenu>
           <MainMenu.DefaultItems.LoadScene />

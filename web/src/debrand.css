@@ -1,9 +1,7 @@
-/* The help button/dialog and the library sidebar link out to the upstream
-   editor's docs and social sites; the app has no replacement for them, so
-   they are removed from the UI entirely. */
+/* The help button/dialog links out to the upstream editor's docs and social
+   sites; the app has no replacement for it, so it is removed from the UI. */
 .help-icon,
-.HelpDialog,
-.default-sidebar-trigger {
+.HelpDialog {
   display: none !important;
 }
 

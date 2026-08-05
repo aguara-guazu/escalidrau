@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -17,6 +18,7 @@ import { sceneToMermaid } from "./mermaid.js";
 export type AppOptions = {
   port?: number;
   webDist?: string;
+  dataDir?: string;
 };
 
 export type AppHandle = {
@@ -67,6 +69,9 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
   );
   const canvasUrl = `http://localhost:${port}`;
   const mcpUrl = `${canvasUrl}/mcp`;
+  const dataDir = options.dataDir ?? join(homedir(), ".escalidrau");
+  await mkdir(dataDir, { recursive: true });
+  const libraryPath = join(dataDir, "library.json");
 
   const store = new SceneStore();
   const tracker = new ChangeTracker();
@@ -142,11 +147,51 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
     }
   };
 
+  // Installed shape libraries persist on disk so they survive restarts.
+  const handleLibrary = async (request: IncomingMessage, response: ServerResponse) => {
+    if (request.method === "GET") {
+      try {
+        const content = await readFile(libraryPath, "utf8");
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(content);
+      } catch {
+        sendJson(response, 200, []);
+      }
+      return;
+    }
+    if (request.method === "PUT") {
+      let body: unknown;
+      try {
+        body = await readJsonBody(request);
+      } catch {
+        sendJson(response, 400, { error: "Invalid JSON body" });
+        return;
+      }
+      if (!Array.isArray(body)) {
+        sendJson(response, 400, { error: "Expected a library items array" });
+        return;
+      }
+      await writeFile(libraryPath, JSON.stringify(body), "utf8");
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+    response.writeHead(405);
+    response.end();
+  };
+
   const httpServer: Server = createServer((request, response) => {
     const urlPath = (request.url ?? "/").split("?")[0];
     if (urlPath === "/mcp") {
       void handleMcp(request, response).catch((error) => {
         console.error("[mcp] request failed:", error);
+        if (!response.headersSent) {
+          sendJson(response, 500, { error: "Internal error" });
+        }
+      });
+      return;
+    }
+    if (urlPath === "/library") {
+      void handleLibrary(request, response).catch(() => {
         if (!response.headersSent) {
           sendJson(response, 500, { error: "Internal error" });
         }
