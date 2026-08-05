@@ -5,6 +5,7 @@ import type { ChangeTracker, ChangeOrigin } from "./changes.js";
 
 type BrowserMessage =
   | { type: "scene_update"; origin?: ChangeOrigin; elements: SceneElement[] }
+  | { type: "scene_reset"; origin?: ChangeOrigin }
   | { type: "response"; id: string; ok: boolean; payload?: unknown; error?: string };
 
 type Pending = {
@@ -66,6 +67,17 @@ export class CanvasBridge {
   }
 
   private handle(sender: WebSocket, message: BrowserMessage) {
+    if (message.type === "scene_reset") {
+      this.store.replace([]);
+      this.tracker.record([], message.origin ?? "user");
+      const broadcast = JSON.stringify({ type: "reset" });
+      for (const client of this.clients) {
+        if (client !== sender && client.readyState === WebSocket.OPEN) {
+          client.send(broadcast);
+        }
+      }
+      return;
+    }
     if (message.type === "scene_update") {
       this.store.replace(message.elements);
       this.tracker.record(message.elements, message.origin ?? "user");

@@ -3,6 +3,7 @@ import { Excalidraw, MainMenu, WelcomeScreen } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { SyncClient } from "./sync";
 import { MermaidDialog } from "./MermaidDialog";
+import { ConfirmResetDialog } from "./ConfirmResetDialog";
 import "./debrand.css";
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
   const [mermaidOpen, setMermaidOpen] = useState(false);
   const [mermaidBusy, setMermaidBusy] = useState(false);
   const [mermaidError, setMermaidError] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api;
@@ -66,7 +68,9 @@ export default function App() {
             Copy as Mermaid
           </MainMenu.Item>
           <MainMenu.DefaultItems.SearchMenu />
-          <MainMenu.DefaultItems.ClearCanvas />
+          <MainMenu.Item onSelect={() => setResetOpen(true)}>
+            Reset the canvas
+          </MainMenu.Item>
           <MainMenu.Separator />
           <MainMenu.DefaultItems.ToggleTheme />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
@@ -92,6 +96,15 @@ export default function App() {
           setMermaidOpen(false);
           setMermaidError(null);
         }}
+      />
+      <ConfirmResetDialog
+        open={resetOpen}
+        onConfirm={() => {
+          syncRef.current?.resetCanvas();
+          setResetOpen(false);
+          apiRef.current?.setToast({ message: "Canvas cleared", duration: 2000 });
+        }}
+        onClose={() => setResetOpen(false)}
       />
     </div>
   );

@@ -31,6 +31,7 @@ type MoveInstruction = {
 
 type ServerMessage =
   | { type: "apply"; elements: OrderedExcalidrawElement[] }
+  | { type: "reset" }
   | ServerRequest;
 
 const PUSH_DEBOUNCE_MS = 300;
@@ -96,9 +97,34 @@ export class SyncClient {
     );
   }
 
+  // Hard reset shared with all clients. Soft-deleting (the library's "clear
+  // canvas") keeps ghosts in the scene and the welcome screen never returns;
+  // resetScene() empties it for real, and the server clears its store so
+  // reconciliation with other clients cannot resurrect the old elements.
+  resetCanvas() {
+    this.applyingRemote = true;
+    try {
+      this.api.resetScene();
+    } finally {
+      this.applyingRemote = false;
+    }
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "scene_reset", origin: "user" }));
+    }
+  }
+
   private async handleMessage(message: ServerMessage) {
     if (message.type === "apply") {
       this.applyRemote(message.elements);
+      return;
+    }
+    if (message.type === "reset") {
+      this.applyingRemote = true;
+      try {
+        this.api.resetScene();
+      } finally {
+        this.applyingRemote = false;
+      }
       return;
     }
     try {
