@@ -2,7 +2,7 @@
 
 **A whiteboard for thinking out loud — with your AI and with your people, on the same canvas.**
 
-Escalidrau is a macOS desktop app where you sketch diagrams by hand while your local AI agent draws right along with you: ask for the architecture of a system and it appears on your screen as it goes, fix it together, and when you want to show it to someone, invite them into a live jam.
+Escalidrau is a desktop app for macOS, Windows and Linux where you sketch diagrams by hand while your local AI agent draws right along with you: ask for the architecture of a system and it appears on your screen as it goes, fix it together, and when you want to show it to someone, invite them into a live jam.
 
 ![The Escalidrau canvas with a serverless architecture diagram](docs/canvas.png)
 
@@ -67,7 +67,7 @@ The nice part of the model: **the drawing travels straight between the computers
 - **Mermaid both ways.** Paste a `flowchart` and it becomes an editable drawing; or turn what you drew into Mermaid to paste into a README.
 - **Drag and drop.** Drop an `.excalidraw` file or a Mermaid file on the window and it offers to import it.
 - **Icon packs.** Install any of them from the public catalog in one click; they stay installed.
-- **It updates itself.** On launch it fetches the latest version, installs it while showing you the progress, and tells you what changed.
+- **It keeps itself current.** On macOS it installs new versions on launch and tells you what changed; on Windows and Linux it lets you know when one is out.
 - **Export** to PNG, SVG, or a file you can keep editing later.
 
 ## Quick answers
