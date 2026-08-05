@@ -7,6 +7,7 @@ import { rebuildMenu } from "./menu.js";
 import { Splash } from "./splash.js";
 import { AppState } from "./state.js";
 import {
+  cleanupLeftovers,
   compareVersions,
   downloadUpdate,
   fetchLatestRelease,
@@ -239,6 +240,10 @@ if (!gotLock) {
     mkdirSync(dataDir, { recursive: true });
     const state = new AppState(dataDir);
     await state.load();
+
+    if (app.isPackaged) {
+      await cleanupLeftovers(bundlePath());
+    }
 
     const splash = new Splash();
     splash.show();

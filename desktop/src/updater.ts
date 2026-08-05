@@ -121,6 +121,13 @@ export async function downloadUpdate(
  * Mounts the DMG, stages the new bundle next to the current one and swaps it in
  * one move, so a failed copy can never leave a half-written app behind.
  */
+/** Removes staging and backup bundles left by an earlier update. */
+export async function cleanupLeftovers(bundlePath: string): Promise<void> {
+  for (const suffix of [".previous", ".incoming"]) {
+    await rm(`${bundlePath}${suffix}`, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
 export async function installUpdate(
   dmgPath: string,
   bundlePath: string,
@@ -157,7 +164,10 @@ export async function installUpdate(
       await run("/bin/mv", [backup, bundlePath]).catch(() => undefined);
       throw error;
     }
-    await rm(backup, { recursive: true, force: true });
+    // The backup is the bundle this process is executing from, so macOS can
+    // refuse to delete parts of it; leaving it behind must never fail the
+    // update (cleanupLeftovers removes it on the next launch).
+    await rm(backup, { recursive: true, force: true }).catch(() => undefined);
   } finally {
     await run("hdiutil", ["detach", mountPoint, "-force"]).catch(() => undefined);
     await rm(mountPoint, { recursive: true, force: true }).catch(() => undefined);

@@ -82,7 +82,9 @@ const renderNotes = (notes: string) => {
   const lines = notes
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line !== "");
+    .filter((line) => line !== "")
+    // Install instructions belong in the README, not in this modal.
+    .filter((line) => !/^install:|releases\/latest\/download|^curl /i.test(line));
   if (lines.length === 0) {
     return <p style={{ margin: 0 }}>This version brings fixes and improvements.</p>;
   }
