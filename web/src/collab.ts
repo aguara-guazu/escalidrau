@@ -67,7 +67,9 @@ export class CollabClient {
   private code = "";
   private nick = "";
   private isOwner = false;
-  private peers = new Map<string, { nick: string }>();
+  private peers = new Map<string, { nick: string; colorIndex?: number }>();
+  // null = automatic (derived from the sorted peer ids).
+  private preferredColor: number | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private collaborators = new Map<string, any>();
   private sendCursor: ((data: { x: number; y: number; b?: number }) => void) | null = null;
@@ -83,6 +85,7 @@ export class CollabClient {
   private ownerId: string | null = null;
   private lastSeen = new Map<string, number>();
   private idleTimer: number | null = null;
+  private announceColor: (() => void) | null = null;
   // Bumped on every join/leave; handlers bound to a previous session ignore
   // late messages (e.g. a peer that was told the room is full).
   private session = 0;
@@ -122,7 +125,7 @@ export class CollabClient {
     const session = this.session;
     const stale = () => session !== this.session;
 
-    const hello = room.makeAction<{ nick: string; owner?: boolean }>("hello");
+    const hello = room.makeAction<{ nick: string; owner?: boolean; color?: number | null }>("hello");
     const cursor = room.makeAction<{ x: number; y: number; b?: number }>("cursor");
     const full = room.makeAction<boolean>("full");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,7 +175,10 @@ export class CollabClient {
         void full.send(true, { target: peerId });
         return;
       }
-      void hello.send({ nick: this.nick, owner: this.isOwner }, { target: peerId });
+      void hello.send(
+        { nick: this.nick, owner: this.isOwner, color: this.preferredColor },
+        { target: peerId }
+      );
     };
     hello.onMessage = (data, context) => {
       if (stale()) {
@@ -185,14 +191,24 @@ export class CollabClient {
         void full.send(true, { target: peerId });
         return;
       }
-      this.peers.set(peerId, { nick: nickname });
+      const declared = typeof data?.color === "number" ? data.color : undefined;
+      this.peers.set(peerId, { nick: nickname, colorIndex: declared });
       this.lastSeen.set(peerId, Date.now());
+      // A peer can change colour mid-session; refresh the cursor already shown.
+      const shown = this.collaborators.get(peerId);
+      if (shown) {
+        this.collaborators.set(peerId, { ...shown, color: this.colorOf(peerId) });
+        this.pushCollaborators();
+      }
       if (data?.owner) {
         this.ownerId = peerId;
       }
       if (!known) {
         // Greet back so both sides know each other regardless of join order.
-        void hello.send({ nick: this.nick, owner: this.isOwner }, { target: peerId });
+        void hello.send(
+          { nick: this.nick, owner: this.isOwner, color: this.preferredColor },
+          { target: peerId }
+        );
         this.onMemberEvent({ kind: "join", nick: nickname });
       }
       this.maybeRequestSnapshot(peerId);
@@ -251,6 +267,9 @@ export class CollabClient {
       }
       this.notify();
     };
+    this.announceColor = () => {
+      void hello.send({ nick: this.nick, owner: this.isOwner, color: this.preferredColor });
+    };
     this.startIdleSweep();
     this.notify();
   }
@@ -263,6 +282,7 @@ export class CollabClient {
     this.room = null;
     this.session += 1;
     this.sendCursor = null;
+    this.announceColor = null;
     this.sendScene = null;
     this.sendFiles = null;
     this.askSnapshot = null;
@@ -292,6 +312,17 @@ export class CollabClient {
       y: Math.round(payload.pointer.y),
       b: payload.button === "down" ? 1 : 0
     });
+  }
+
+  get colorChoice(): number | null {
+    return this.preferredColor;
+  }
+
+  /** Sets the local cursor colour (null restores the automatic one). */
+  setColorChoice(index: number | null) {
+    this.preferredColor = index;
+    this.announceColor?.();
+    this.notify();
   }
 
   /** Called on every local scene change; broadcasts only what actually moved. */
@@ -422,6 +453,11 @@ export class CollabClient {
   }
 
   private colorOf(peerId: string): { background: string; stroke: string } {
+    const chosen =
+      peerId === selfId ? this.preferredColor : this.peers.get(peerId)?.colorIndex ?? null;
+    if (chosen !== null && chosen !== undefined && CURSOR_COLORS[chosen]) {
+      return CURSOR_COLORS[chosen];
+    }
     const ids = [selfId, ...this.peers.keys()].sort();
     const index = Math.max(0, ids.indexOf(peerId));
     return CURSOR_COLORS[index % CURSOR_COLORS.length];

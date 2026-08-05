@@ -1,0 +1,315 @@
+/*
+ * Design tokens and primitives for the UI this app adds on top of the editor.
+ * Every custom component gets the .esc-ui class on its root, which pins the
+ * editor's own UI font and border-box sizing for the whole subtree — that is
+ * what keeps our dialogs consistent with the rest of the app and stops padded
+ * full-width inputs from overflowing their container.
+ */
+.esc-ui,
+.esc-ui * {
+  font-family: var(--ui-font, Assistant, system-ui, BlinkMacSystemFont, -apple-system, sans-serif);
+  box-sizing: border-box;
+}
+
+.esc-ui {
+  --esc-accent: #6965db;
+  --esc-danger: #e03131;
+  --esc-radius: 10px;
+  --esc-surface: var(--island-bg-color, #fff);
+  --esc-ink: var(--text-primary-color, #1e1e1e);
+  --esc-border: var(--default-border-color, #d6d6d6);
+}
+
+.esc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.esc-overlay--front {
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.esc-card {
+  width: 440px;
+  max-width: 92vw;
+  max-height: 82vh;
+  padding: 20px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  background: var(--esc-surface);
+  color: var(--esc-ink);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.esc-card--wide {
+  width: 540px;
+}
+
+.esc-card--flush {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.esc-hero {
+  padding: 22px 24px;
+  background: linear-gradient(140deg, #7b6ff0, #5b50c8);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.esc-hero__eyebrow {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.esc-body {
+  padding: 18px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.esc-footer {
+  padding: 14px 24px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--esc-border);
+}
+
+.esc-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.esc-title--hero {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.esc-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.esc-muted {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.esc-hint {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.esc-error {
+  font-size: 13px;
+  color: var(--esc-danger);
+}
+
+.esc-divider {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.esc-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.esc-input,
+.esc-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--esc-border);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+
+.esc-input--code {
+  font-family: monospace;
+  text-transform: uppercase;
+}
+
+.esc-textarea {
+  min-height: 180px;
+  font-family: monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.esc-code {
+  padding: 10px 0;
+  border: 1px dashed var(--esc-border);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 24px;
+  letter-spacing: 2px;
+  text-align: center;
+  user-select: all;
+}
+
+.esc-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--esc-border);
+  border-radius: var(--esc-radius);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.esc-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.esc-btn--primary {
+  background: var(--esc-accent);
+  border-color: var(--esc-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.esc-btn--danger {
+  background: var(--esc-danger);
+  border-color: var(--esc-danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.esc-btn--top {
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.esc-btn--pill {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--esc-border);
+  border-radius: var(--esc-radius);
+  background: var(--esc-surface);
+  color: var(--esc-ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.esc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.esc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.esc-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.esc-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.esc-dot--live {
+  width: 8px;
+  height: 8px;
+  background: #2f9e44;
+}
+
+.esc-bullet {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.esc-bullet__dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--esc-accent);
+  flex-shrink: 0;
+}
+
+/* Cursor colour picker */
+.esc-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.esc-swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  background-clip: padding-box;
+}
+
+.esc-swatch--auto {
+  width: auto;
+  padding: 0 10px;
+  border-radius: 13px;
+  border: 1px solid var(--esc-border);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+
+.esc-swatch--selected {
+  outline: 2px solid var(--esc-ink);
+  outline-offset: 2px;
+}

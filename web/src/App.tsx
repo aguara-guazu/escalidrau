@@ -15,6 +15,7 @@ import { WhatsNewDialog } from "./WhatsNewDialog";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { copyIcon, importIcon, trashIcon } from "./icons";
+import "./ui.css";
 import "./debrand.css";
 
 const MERMAID_KEYWORDS = /^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram)\b/;
@@ -61,6 +62,10 @@ export default function App() {
   const [roomOpen, setRoomOpen] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null);
+  const [colorChoice, setColorChoice] = useState<number | null>(() => {
+    const stored = localStorage.getItem("escalidrau-cursor-color");
+    return stored === null || stored === "auto" ? null : Number(stored);
+  });
   // Installed shape libraries live server-side (they must survive restarts).
   const [initialData] = useState(() => ({
     libraryItems: fetch("/library")
@@ -95,6 +100,10 @@ export default function App() {
                 : `The host left — ${event.nick} is the host now`;
         api.setToast({ message, duration: 3000 });
       };
+      const stored = localStorage.getItem("escalidrau-cursor-color");
+      if (stored !== null && stored !== "auto") {
+        collab.setColorChoice(Number(stored));
+      }
       collabRef.current = collab;
       // Deep link / testing: ?room=CODE&nick=NAME[&owner=1] joins on load.
       const params = new URLSearchParams(window.location.search);
@@ -104,6 +113,12 @@ export default function App() {
         collab.join(roomParam, nickParam, params.get("owner") === "1");
       }
     }
+  }, []);
+
+  const chooseColor = useCallback((index: number | null) => {
+    setColorChoice(index);
+    localStorage.setItem("escalidrau-cursor-color", index === null ? "auto" : String(index));
+    collabRef.current?.setColorChoice(index);
   }, []);
 
   const persistLibrary = useCallback((items: LibraryItems) => {
@@ -327,6 +342,8 @@ export default function App() {
         open={roomOpen}
         info={roomInfo}
         error={roomError}
+        colorChoice={colorChoice}
+        onColorChoice={chooseColor}
         onCreate={(code, nick) => {
           setRoomError(null);
           collabRef.current?.join(code, nick, true);
