@@ -10,7 +10,11 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 
 const REPO = "aguara-guazu/escalidrau";
-const ASSET_NAME = "Escalidrau-arm64.dmg";
+const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
+// Self-install is implemented (and tested) for the macOS disk image only.
+const ASSET_NAME = `Escalidrau-${process.arch}.dmg`;
+export const canSelfInstall = process.platform === "darwin";
+export const releasesPage = RELEASES_PAGE;
 const CHECK_TIMEOUT_MS = 6000;
 const MIN_DMG_BYTES = 20 * 1024 * 1024;
 
@@ -56,7 +60,9 @@ export async function fetchLatestRelease(): Promise<ReleaseInfo | null> {
     if (!release.tag_name) {
       return null;
     }
-    const asset = (release.assets ?? []).find((entry) => entry.name === ASSET_NAME);
+    const asset = canSelfInstall
+      ? (release.assets ?? []).find((entry) => entry.name === ASSET_NAME)
+      : undefined;
     return {
       version: release.tag_name.replace(/^v/, ""),
       notes: release.body?.trim() ?? "",

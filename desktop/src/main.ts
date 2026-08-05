@@ -7,12 +7,14 @@ import { rebuildMenu } from "./menu.js";
 import { Splash } from "./splash.js";
 import { AppState } from "./state.js";
 import {
+  canSelfInstall,
   cleanupLeftovers,
   compareVersions,
   downloadUpdate,
   fetchLatestRelease,
   fetchReleaseNotes,
-  installUpdate
+  installUpdate,
+  releasesPage
 } from "./updater.js";
 
 const PORT = Number(process.env.PORT ?? 3580);
@@ -32,6 +34,7 @@ if (!gotLock) {
   let quitRequested = false;
   let mainWindow: BrowserWindow | null = null;
   let whatsNew: { version: string; notes: string } | null = null;
+  let updateNotice: { version: string; url: string } | null = null;
 
   const bundlePath = () => process.execPath.split("/Contents/MacOS/")[0];
 
@@ -50,15 +53,18 @@ if (!gotLock) {
    * Any failure is non-fatal — the app simply starts on the current version.
    */
   const runUpdateFlow = async (splash: Splash): Promise<boolean> => {
-    if (!app.isPackaged || !canWriteBundle()) {
+    if (!app.isPackaged) {
       return false;
     }
     splash.status("Checking for updates…");
     const release = await fetchLatestRelease();
-    if (!release || !release.downloadUrl) {
+    if (!release || compareVersions(release.version, app.getVersion()) <= 0) {
       return false;
     }
-    if (compareVersions(release.version, app.getVersion()) <= 0) {
+    // Windows and Linux builds report the new version instead of replacing
+    // themselves: that path is not implemented for their package formats.
+    if (!canSelfInstall || !release.downloadUrl || !canWriteBundle()) {
+      updateNotice = { version: release.version, url: releasesPage };
       return false;
     }
     const controller = new AbortController();
@@ -241,7 +247,7 @@ if (!gotLock) {
     const state = new AppState(dataDir);
     await state.load();
 
-    if (app.isPackaged) {
+    if (app.isPackaged && canSelfInstall) {
       await cleanupLeftovers(bundlePath());
     }
 
@@ -277,6 +283,7 @@ if (!gotLock) {
         port: PORT,
         webDist,
         dataDir,
+        updateNotice: { get: () => updateNotice },
         whatsNew: {
           get: () => whatsNew,
           markSeen: () => {

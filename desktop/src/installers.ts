@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -18,12 +18,17 @@ export type BridgeConfig = {
 };
 
 const CLI_TIMEOUT_MS = 30_000;
+const isWindows = process.platform === "win32";
 
 // Runs through a login shell so the user's PATH (nvm, homebrew, ...) applies;
-// GUI apps on macOS inherit a minimal PATH otherwise.
+// GUI apps inherit a minimal PATH otherwise. Windows has no login shell, so
+// the command goes through cmd.exe.
 const loginShell = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
-    execFile("/bin/zsh", ["-lc", command], { timeout: CLI_TIMEOUT_MS }, (error, stdout, stderr) => {
+    const [file, args] = isWindows
+      ? ["cmd.exe", ["/c", command]]
+      : ["/bin/sh", ["-lc", command]];
+    execFile(file, args as string[], { timeout: CLI_TIMEOUT_MS }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr.trim() || error.message));
       } else {
@@ -33,8 +38,19 @@ const loginShell = (command: string): Promise<string> =>
   });
 
 const claudeCodeConfigPath = (home: string) => join(home, ".claude.json");
+
+// Claude Desktop keeps its config in the platform's app-data directory.
+const claudeDesktopDir = (home: string) => {
+  if (process.platform === "darwin") {
+    return join(home, "Library", "Application Support", "Claude");
+  }
+  if (isWindows) {
+    return join(process.env.APPDATA ?? join(home, "AppData", "Roaming"), "Claude");
+  }
+  return join(process.env.XDG_CONFIG_HOME ?? join(home, ".config"), "Claude");
+};
 const claudeDesktopConfigPath = (home: string) =>
-  join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+  join(claudeDesktopDir(home), "claude_desktop_config.json");
 const codexConfigPath = (home: string) => join(home, ".codex", "config.toml");
 
 export async function claudeCodeStatus(mcpUrl: string, home = homedir()): Promise<ClientStatus> {
@@ -126,6 +142,7 @@ export async function addToClaudeDesktop(bridge: BridgeConfig, home = homedir())
   if (existsSync(configPath)) {
     config = JSON.parse(await readFile(configPath, "utf8"));
   }
+  await mkdir(dirname(configPath), { recursive: true }).catch(() => undefined);
   config.mcpServers = {
     ...config.mcpServers,
     // Claude Desktop only spawns stdio servers from this file; the embedded
@@ -153,6 +170,7 @@ export async function codexStatus(mcpUrl: string, home = homedir()): Promise<Cli
 
 export async function addToCodex(bridge: BridgeConfig, home = homedir()): Promise<void> {
   const configPath = codexConfigPath(home);
+  await mkdir(dirname(configPath), { recursive: true }).catch(() => undefined);
   const existing = existsSync(configPath) ? await readFile(configPath, "utf8") : "";
   // JSON string escaping matches TOML basic strings for paths and URLs.
   const envEntries = Object.entries(bridge.env)

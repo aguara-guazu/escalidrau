@@ -62,6 +62,7 @@ export default function App() {
   const [roomOpen, setRoomOpen] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null);
+  const [updateNotice, setUpdateNotice] = useState<{ version: string; url: string } | null>(null);
   const [colorChoice, setColorChoice] = useState<number | null>(() => {
     const stored = localStorage.getItem("escalidrau-cursor-color");
     return stored === null || stored === "auto" ? null : Number(stored);
@@ -194,6 +195,18 @@ export default function App() {
     } finally {
       setDropped(null);
     }
+  }, []);
+
+  // On platforms the app cannot update by itself, point at the download page.
+  useEffect(() => {
+    void fetch("/update-notice")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload && typeof payload.version === "string") {
+          setUpdateNotice({ version: payload.version, url: String(payload.url) });
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   // Release notes are served once per version by the desktop shell.
@@ -357,6 +370,20 @@ export default function App() {
         }}
         onClose={() => setRoomOpen(false)}
       />
+      {updateNotice ? (
+        <ConfirmDialog
+          open
+          title={`Version ${updateNotice.version} is available`}
+          confirmLabel="Get it"
+          onConfirm={() => {
+            window.open(updateNotice.url, "_blank");
+            setUpdateNotice(null);
+          }}
+          onClose={() => setUpdateNotice(null)}
+        >
+          This build cannot replace itself, so grab the new installer when you have a minute.
+        </ConfirmDialog>
+      ) : null}
       {whatsNew ? (
         <WhatsNewDialog
           version={whatsNew.version}

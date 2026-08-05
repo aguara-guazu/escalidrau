@@ -23,6 +23,9 @@ export type AppOptions = {
     get: () => { version: string; notes: string } | null;
     markSeen: () => void;
   };
+  updateNotice?: {
+    get: () => { version: string; url: string } | null;
+  };
 };
 
 export type AppHandle = {
@@ -210,6 +213,10 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
           sendJson(response, 500, { error: "Internal error" });
         }
       });
+      return;
+    }
+    if (urlPath === "/update-notice") {
+      sendJson(response, 200, options.updateNotice?.get() ?? null);
       return;
     }
     if (urlPath === "/whatsnew") {

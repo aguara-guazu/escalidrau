@@ -8,13 +8,29 @@ Escalidrau is a macOS desktop app where you sketch diagrams by hand while your l
 
 ## Install
 
-Copy this into a terminal (macOS, Apple Silicon):
+**macOS** (Apple Silicon or Intel) — paste in a terminal:
 
 ```bash
-curl -fL https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-arm64.dmg -o /tmp/Escalidrau.dmg && open /tmp/Escalidrau.dmg
+curl -fL https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-$(uname -m | sed s/x86_64/x64/).dmg -o /tmp/Escalidrau.dmg && open /tmp/Escalidrau.dmg
 ```
 
-Drag **Escalidrau** to Applications, open it, and you are done. From then on it updates itself.
+Drag **Escalidrau** to Applications and open it. From then on it updates itself.
+
+**Windows** — paste in PowerShell:
+
+```powershell
+irm https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-Setup-x64.exe -OutFile "$env:TEMP\Escalidrau-Setup.exe"; & "$env:TEMP\Escalidrau-Setup.exe"
+```
+
+The installer needs no admin rights and puts Escalidrau in your Start menu. On ARM devices swap `x64` for `arm64`.
+
+**Linux** — paste in a terminal:
+
+```bash
+curl -fL https://github.com/aguara-guazu/escalidrau/releases/latest/download/Escalidrau-$(uname -m).AppImage -o ~/Escalidrau.AppImage && chmod +x ~/Escalidrau.AppImage && ~/Escalidrau.AppImage
+```
+
+That is the portable build — nothing to install. If you prefer a package, Debian and Ubuntu users can grab the `.deb` from the [releases page](https://github.com/aguara-guazu/escalidrau/releases/latest) and install it with `sudo apt install ./Escalidrau-amd64.deb`.
 
 ## Draw with your agent
 
@@ -58,13 +74,17 @@ The nice part of the model: **the drawing travels straight between the computers
 
 **Do I need an account?** No. No login, no servers, no telemetry.
 
-**It says the app "is damaged".** That happens when you download the DMG with a browser or get it over chat, because the app is not signed by Apple. The install command above avoids it. If it already happened:
+**macOS says the app "is damaged".** That happens when you download the DMG with a browser or get it over chat, because the app is not signed by Apple. The install command above avoids it. If it already happened:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
 ```
 
-**Intel Macs or Windows?** Apple Silicon only for now.
+**Windows shows a SmartScreen warning.** Same reason: the installer is not signed. Choose *More info* → *Run anyway*.
+
+**Which systems are supported?** macOS (Apple Silicon and Intel), Windows (x64 and ARM) and Linux (x64 and ARM, AppImage or .deb).
+
+**Does it update itself everywhere?** The macOS build installs updates on its own. The Windows and Linux builds tell you when a new version is out and take you to the download — replacing an installed app in place is riskier on those platforms, so it is not done behind your back.
 
 **Someone cannot join a jam.** Some restrictive networks block direct computer-to-computer connections. That is the network, not the app.
 
@@ -76,8 +96,12 @@ While the app is open it exposes an MCP server at `http://localhost:3580/mcp` wi
 npm install
 npm run dev    # web (vite, :3579) + server (:3580)
 npm run app    # Electron app in dev mode
-npm run dist   # builds the DMG into desktop/release/
+npm run dist         # macOS build into desktop/release/
+npm run dist:win     # Windows build (needs Wine when run from macOS or Linux)
+npm run dist:linux   # Linux build (AppImage + deb)
 ```
+
+Releases are built by CI: pushing a `v*` tag runs each platform on its own runner and attaches every artifact to the release.
 
 ## License
 
