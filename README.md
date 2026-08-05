@@ -60,6 +60,12 @@ npm run app    # Electron app in dev mode
 npm run dist   # builds the DMG into desktop/release/
 ```
 
+## Updates
+
+Escalidrau keeps itself up to date: on launch it checks the latest release, and if there is a newer version it downloads and installs it before opening, showing a splash with progress (you can always continue without updating). Once the app opens on a new version, a modal summarises what changed.
+
+The app is not signed or notarized, so the standard macOS update mechanism cannot be used; the bundle is replaced by hand from the published disk image. The download happens over HTTPS from inside the app, which is what keeps Gatekeeper's quarantine out of the way, and the swap keeps a backup so a failed update can roll back.
+
 ## Known limitations
 
 - The scene lives in memory: closing the app loses anything not exported (save with menu → "Save to file").
