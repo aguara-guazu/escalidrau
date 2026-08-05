@@ -19,6 +19,9 @@ export default defineConfig({
       },
       "/library": {
         target: "http://localhost:3580"
+      },
+      "/whatsnew": {
+        target: "http://localhost:3580"
       }
     }
   },

@@ -19,6 +19,10 @@ export type AppOptions = {
   port?: number;
   webDist?: string;
   dataDir?: string;
+  whatsNew?: {
+    get: () => { version: string; notes: string } | null;
+    markSeen: () => void;
+  };
 };
 
 export type AppHandle = {
@@ -206,6 +210,15 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
           sendJson(response, 500, { error: "Internal error" });
         }
       });
+      return;
+    }
+    if (urlPath === "/whatsnew") {
+      if (request.method === "POST") {
+        options.whatsNew?.markSeen();
+        sendJson(response, 200, { ok: true });
+        return;
+      }
+      sendJson(response, 200, options.whatsNew?.get() ?? null);
       return;
     }
     if (urlPath === "/library") {

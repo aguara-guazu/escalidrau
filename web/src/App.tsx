@@ -11,6 +11,7 @@ import { SyncClient } from "./sync";
 import { CollabClient, type RoomInfo } from "./collab";
 import { RoomDialog } from "./RoomDialog";
 import { JamButton } from "./JamButton";
+import { WhatsNewDialog } from "./WhatsNewDialog";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { copyIcon, importIcon, trashIcon } from "./icons";
@@ -59,6 +60,7 @@ export default function App() {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [roomOpen, setRoomOpen] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
+  const [whatsNew, setWhatsNew] = useState<{ version: string; notes: string } | null>(null);
   // Installed shape libraries live server-side (they must survive restarts).
   const [initialData] = useState(() => ({
     libraryItems: fetch("/library")
@@ -177,6 +179,23 @@ export default function App() {
     } finally {
       setDropped(null);
     }
+  }, []);
+
+  // Release notes are served once per version by the desktop shell.
+  useEffect(() => {
+    void fetch("/whatsnew")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload && typeof payload.version === "string") {
+          setWhatsNew({ version: payload.version, notes: String(payload.notes ?? "") });
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const dismissWhatsNew = useCallback(() => {
+    setWhatsNew(null);
+    void fetch("/whatsnew", { method: "POST" }).catch(() => undefined);
   }, []);
 
   // Capture-phase drop interception: scene and Mermaid files are ours;
@@ -321,6 +340,13 @@ export default function App() {
         }}
         onClose={() => setRoomOpen(false)}
       />
+      {whatsNew ? (
+        <WhatsNewDialog
+          version={whatsNew.version}
+          notes={whatsNew.notes}
+          onClose={dismissWhatsNew}
+        />
+      ) : null}
       <ConfirmDialog
         open={dropped !== null}
         title={dropped?.replace ? "Replace the canvas?" : "Import file"}

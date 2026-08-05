@@ -1,9 +1,18 @@
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { accessSync, constants, copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { BrowserWindow, app, dialog, shell } from "electron";
 import { startApp, type AppHandle } from "../../server/src/app.js";
 import { rebuildMenu } from "./menu.js";
+import { Splash } from "./splash.js";
+import { AppState } from "./state.js";
+import {
+  compareVersions,
+  downloadUpdate,
+  fetchLatestRelease,
+  fetchReleaseNotes,
+  installUpdate
+} from "./updater.js";
 
 const PORT = Number(process.env.PORT ?? 3580);
 const MCP_URL = `http://localhost:${PORT}/mcp`;
@@ -21,6 +30,61 @@ if (!gotLock) {
   let appHandle: AppHandle | null = null;
   let quitRequested = false;
   let mainWindow: BrowserWindow | null = null;
+  let whatsNew: { version: string; notes: string } | null = null;
+
+  const bundlePath = () => process.execPath.split("/Contents/MacOS/")[0];
+
+  const canWriteBundle = () => {
+    try {
+      accessSync(dirname(bundlePath()), constants.W_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /**
+   * Updates itself: Squirrel.Mac refuses to update an app that is not
+   * code-signed, so the bundle is replaced by hand from the published DMG.
+   * Any failure is non-fatal — the app simply starts on the current version.
+   */
+  const runUpdateFlow = async (splash: Splash): Promise<boolean> => {
+    if (!app.isPackaged || !canWriteBundle()) {
+      return false;
+    }
+    splash.status("Checking for updates…");
+    const release = await fetchLatestRelease();
+    if (!release || !release.downloadUrl) {
+      return false;
+    }
+    if (compareVersions(release.version, app.getVersion()) <= 0) {
+      return false;
+    }
+    const controller = new AbortController();
+    let skipped = false;
+    splash.onSkip = () => {
+      skipped = true;
+      controller.abort();
+    };
+    splash.allowSkip();
+    splash.status(`Downloading version ${release.version}…`, 0);
+    try {
+      const dmgPath = await downloadUpdate(
+        release.downloadUrl,
+        (fraction) => splash.status(`Downloading version ${release.version}…`, fraction),
+        controller.signal
+      );
+      splash.status("Installing the update…");
+      await installUpdate(dmgPath, bundlePath(), "app.escalidrau.local");
+      splash.status("Restarting…");
+      return true;
+    } catch (error) {
+      if (!skipped) {
+        console.error("[updater] update failed:", error);
+      }
+      return false;
+    }
+  };
 
   const isLibraryReturn = (url: string) =>
     url.startsWith(CANVAS_URL) && url.includes("addLibrary");
@@ -172,6 +236,27 @@ if (!gotLock) {
 
   void app.whenReady().then(async () => {
     const dataDir = app.getPath("userData");
+    mkdirSync(dataDir, { recursive: true });
+    const state = new AppState(dataDir);
+    await state.load();
+
+    const splash = new Splash();
+    splash.show();
+    const updated = await runUpdateFlow(splash);
+    if (updated) {
+      splash.close();
+      app.relaunch();
+      app.exit(0);
+      return;
+    }
+    splash.status("Starting the canvas…");
+
+    // Release notes for the version now running, shown once per version.
+    if (app.isPackaged && state.lastSeenVersion !== app.getVersion()) {
+      const notes = await fetchReleaseNotes(app.getVersion());
+      whatsNew = { version: app.getVersion(), notes: notes ?? "" };
+    }
+
     // One-time migration from builds whose userData dir was named "desktop".
     const legacyLibrary = join(dirname(dataDir), "desktop", "library.json");
     const currentLibrary = join(dataDir, "library.json");
@@ -183,7 +268,18 @@ if (!gotLock) {
       ? join(process.resourcesPath, "web")
       : join(app.getAppPath(), "..", "web", "dist");
     try {
-      appHandle = await startApp({ port: PORT, webDist, dataDir });
+      appHandle = await startApp({
+        port: PORT,
+        webDist,
+        dataDir,
+        whatsNew: {
+          get: () => whatsNew,
+          markSeen: () => {
+            whatsNew = null;
+            void state.setLastSeenVersion(app.getVersion());
+          }
+        }
+      });
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       dialog.showErrorBox(
@@ -192,11 +288,15 @@ if (!gotLock) {
           ? `Port ${PORT} is already in use. Close the other Escalidrau instance (or the headless server) and reopen the app.`
           : `Failed to start the embedded server: ${String(error)}`
       );
+      splash.close();
       app.quit();
       return;
     }
     await rebuildMenu(MCP_URL);
     createWindow();
+    mainWindow?.once("ready-to-show", () => splash.close());
+    // Safety net in case the window never signals readiness.
+    setTimeout(() => splash.close(), 8000);
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
