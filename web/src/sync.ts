@@ -268,13 +268,23 @@ export class SyncClient {
   // skeleton's default geometry (a 100px horizontal segment), so arrows
   // created without explicit points do not visually reach their targets.
   // Re-route them as straight border-to-border segments.
+  //
+  // The bindings computed by convertToExcalidrawElements describe that same
+  // placeholder geometry: focus can land far outside its valid [-1, 1] range
+  // and gap can be tens of px. Excalidraw re-derives arrow endpoints from
+  // focus/gap on every later recompute (dragging or resizing a bound shape),
+  // so stale values snap arrows to corners, freeze them mid-air or teleport
+  // the endpoint to the out-of-range focus point. After routing, rewrite each
+  // binding to focus 0 (aim at the shape center) with the routed gap.
+  private static readonly ARROW_BORDER_PAD = 4;
+
   private routeBoundArrows<T extends { id: string; type: string }>(converted: readonly T[]): T[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const byId = new Map<string, any>(converted.map((element) => [element.id, element]));
     const borderPoint = (
-      element: { x: number; y: number; width: number; height: number },
+      element: { type: string; x: number; y: number; width: number; height: number },
       towards: { x: number; y: number },
-      pad = 4
+      pad = SyncClient.ARROW_BORDER_PAD
     ) => {
       const cx = element.x + element.width / 2;
       const cy = element.y + element.height / 2;
@@ -283,9 +293,19 @@ export class SyncClient {
       if (dx === 0 && dy === 0) {
         return { x: cx, y: cy };
       }
-      const tx = dx !== 0 ? (element.width / 2 + pad) / Math.abs(dx) : Infinity;
-      const ty = dy !== 0 ? (element.height / 2 + pad) / Math.abs(dy) : Infinity;
-      const t = Math.min(tx, ty, 1);
+      const a = element.width / 2;
+      const b = element.height / 2;
+      let border: number;
+      if (element.type === "ellipse") {
+        border = 1 / Math.hypot(dx / a, dy / b);
+      } else if (element.type === "diamond") {
+        border = 1 / (Math.abs(dx) / a + Math.abs(dy) / b);
+      } else {
+        const tx = dx !== 0 ? a / Math.abs(dx) : Infinity;
+        const ty = dy !== 0 ? b / Math.abs(dy) : Infinity;
+        border = Math.min(tx, ty);
+      }
+      const t = Math.min(border + pad / Math.hypot(dx, dy), 1);
       return { x: cx + dx * t, y: cy + dy * t };
     };
     return converted.map((element) => {
@@ -313,6 +333,7 @@ export class SyncClient {
         : currentEnd;
       const start = startTarget ? borderPoint(startTarget, endAnchor) : currentStart;
       const end = endTarget ? borderPoint(endTarget, startAnchor) : currentEnd;
+      const routedGap = Math.max(1, SyncClient.ARROW_BORDER_PAD);
       return {
         ...el,
         x: start.x,
@@ -322,7 +343,11 @@ export class SyncClient {
           [end.x - start.x, end.y - start.y]
         ],
         width: Math.abs(end.x - start.x),
-        height: Math.abs(end.y - start.y)
+        height: Math.abs(end.y - start.y),
+        startBinding: startTarget
+          ? { ...el.startBinding, focus: 0, gap: routedGap }
+          : el.startBinding,
+        endBinding: endTarget ? { ...el.endBinding, focus: 0, gap: routedGap } : el.endBinding
       };
     });
   }
