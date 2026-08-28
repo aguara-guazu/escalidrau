@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { lstat, mkdir, readFile, readlink, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -18,25 +17,7 @@ export type BridgeConfig = {
   env: Record<string, string>;
 };
 
-const CLI_TIMEOUT_MS = 30_000;
 const isWindows = process.platform === "win32";
-
-// Runs through a login shell so the user's PATH (nvm, homebrew, ...) applies;
-// GUI apps inherit a minimal PATH otherwise. Windows has no login shell, so
-// the command goes through cmd.exe.
-const loginShell = (command: string): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const [file, args] = isWindows
-      ? ["cmd.exe", ["/c", command]]
-      : ["/bin/sh", ["-lc", command]];
-    execFile(file, args as string[], { timeout: CLI_TIMEOUT_MS }, (error, stdout, stderr) => {
-      if (error) {
-        reject(new Error(stderr.trim() || error.message));
-      } else {
-        resolve(stdout.trim());
-      }
-    });
-  });
 
 const claudeCodeConfigPath = (home: string) => join(home, ".claude.json");
 
@@ -54,10 +35,22 @@ const claudeDesktopConfigPath = (home: string) =>
   join(claudeDesktopDir(home), "claude_desktop_config.json");
 const codexConfigPath = (home: string) => join(home, ".codex", "config.toml");
 
+// Claude Code leaves ~/.claude.json and ~/.claude/ behind once run; before its
+// first run the binary itself is the only trace (native installer, npm, brew).
+const claudeCodeDetected = (home: string) =>
+  existsSync(claudeCodeConfigPath(home)) ||
+  existsSync(join(home, ".claude")) ||
+  [join(home, ".local", "bin", "claude"), "/usr/local/bin/claude", "/opt/homebrew/bin/claude"].some((path) =>
+    existsSync(path)
+  );
+
 export async function claudeCodeStatus(mcpUrl: string, home = homedir()): Promise<ClientStatus> {
   const configPath = claudeCodeConfigPath(home);
-  if (!existsSync(configPath)) {
+  if (!claudeCodeDetected(home)) {
     return "not-installed";
+  }
+  if (!existsSync(configPath)) {
+    return "missing";
   }
   try {
     const config = JSON.parse(await readFile(configPath, "utf8")) as {
@@ -69,11 +62,30 @@ export async function claudeCodeStatus(mcpUrl: string, home = homedir()): Promis
   }
 }
 
-export async function addToClaudeCode(mcpUrl: string, skillSource: string): Promise<void> {
-  await loginShell(
-    `claude mcp add --transport http --scope user escalidrau ${JSON.stringify(mcpUrl)}`
-  );
-  await installClaudeCodeSkill(skillSource).catch(() => undefined);
+/**
+ * Registers the server in Claude Code's user-scope config, the file
+ * `claude mcp add --scope user` edits. Writing it directly works on a machine
+ * where the `claude` binary is not on the PATH of a non-interactive shell (the
+ * native installer only adds it to the user's zsh/bash rc files) and before
+ * Claude Code has ever run. Other settings in the file are kept as they are;
+ * an unparsable file is left alone rather than overwritten.
+ */
+export async function addToClaudeCode(mcpUrl: string, skillSource: string, home = homedir()): Promise<void> {
+  const configPath = claudeCodeConfigPath(home);
+  let config: { mcpServers?: Record<string, unknown> } & Record<string, unknown> = {};
+  if (existsSync(configPath)) {
+    try {
+      config = JSON.parse(await readFile(configPath, "utf8"));
+    } catch {
+      throw new Error(
+        `${configPath} is not valid JSON; fix it or run: claude mcp add --transport http --scope user escalidrau ${mcpUrl}`
+      );
+    }
+  }
+  config.mcpServers = { ...config.mcpServers, escalidrau: { type: "http", url: mcpUrl } };
+  // The file holds account details: keep it private to the user.
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  await installClaudeCodeSkill(skillSource, home).catch(() => undefined);
 }
 
 /**

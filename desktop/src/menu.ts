@@ -57,7 +57,8 @@ const CLIENTS: ClientDefinition[] = [
   {
     name: "Claude Code",
     status: claudeCodeStatus,
-    add: (mcpUrl) => addToClaudeCode(mcpUrl, skillSource())
+    add: (mcpUrl) => addToClaudeCode(mcpUrl, skillSource()),
+    postInstallNote: "New Claude Code sessions will pick it up; in a running one, type /mcp to reconnect."
   },
   {
     name: "Claude Desktop",
