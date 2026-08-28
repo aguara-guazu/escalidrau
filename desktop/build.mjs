@@ -9,8 +9,9 @@ const common = {
   // try/catch; leaving them external keeps the bundle resolvable without them.
   external: ["electron", "bufferutil", "utf-8-validate"],
   // The splash embeds the editor's UI font, so it renders identically without
-  // depending on system fonts or the network.
-  loader: { ".woff2": "base64" },
+  // depending on system fonts or the network. The agent skill ships as text so
+  // the installer can write it next to the MCP configuration.
+  loader: { ".woff2": "base64", ".md": "text" },
   sourcemap: false
 };
 

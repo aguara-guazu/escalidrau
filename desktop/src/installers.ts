@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import SKILL_MARKDOWN from "../../skills/escalidrau/SKILL.md";
 
 export type ClientStatus = "added" | "missing" | "not-installed";
 
@@ -72,6 +73,61 @@ export async function addToClaudeCode(mcpUrl: string): Promise<void> {
   await loginShell(
     `claude mcp add --transport http --scope user escalidrau ${JSON.stringify(mcpUrl)}`
   );
+  await installClaudeCodeSkill().catch(() => undefined);
+}
+
+/**
+ * The "escalidrau" agent skill: how to lay out diagrams on the canvas. It is
+ * written where each client loads personal skills (Agent Skills standard,
+ * SKILL.md in a directory named after the skill) and rewritten on launch
+ * whenever the bundled copy changes, so it tracks the app version.
+ */
+const SKILL_NAME = "escalidrau";
+const claudeSkillPath = (home: string) => join(home, ".claude", "skills", SKILL_NAME, "SKILL.md");
+// Codex documents ~/.agents/skills; earlier builds read ~/.codex/skills, which
+// is kept in sync when it already exists.
+const codexSkillPaths = (home: string) => [
+  join(home, ".agents", "skills", SKILL_NAME, "SKILL.md"),
+  ...(existsSync(join(home, ".codex", "skills")) ? [join(home, ".codex", "skills", SKILL_NAME, "SKILL.md")] : [])
+];
+
+const writeSkill = async (path: string) => {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, SKILL_MARKDOWN, "utf8");
+};
+
+const skillStatus = async (paths: string[], clientDir: string): Promise<ClientStatus> => {
+  if (!existsSync(clientDir)) {
+    return "not-installed";
+  }
+  return paths.some((path) => existsSync(path)) ? "added" : "missing";
+};
+
+export const claudeCodeSkillStatus = (home = homedir()) =>
+  skillStatus([claudeSkillPath(home)], join(home, ".claude"));
+
+export const installClaudeCodeSkill = (home = homedir()) => writeSkill(claudeSkillPath(home));
+
+export const codexSkillStatus = (home = homedir()) =>
+  skillStatus(codexSkillPaths(home), join(home, ".codex"));
+
+export const installCodexSkill = async (home = homedir()) => {
+  for (const path of codexSkillPaths(home)) {
+    await writeSkill(path);
+  }
+};
+
+/** Rewrites every installed copy of the skill whose content is out of date. */
+export async function refreshInstalledSkills(home = homedir()): Promise<void> {
+  for (const path of [claudeSkillPath(home), ...codexSkillPaths(home)]) {
+    if (!existsSync(path)) {
+      continue;
+    }
+    const current = await readFile(path, "utf8").catch(() => null);
+    if (current !== SKILL_MARKDOWN) {
+      await writeSkill(path).catch(() => undefined);
+    }
+  }
 }
 
 const claudeSettingsPath = (home: string) => join(home, ".claude", "settings.json");
@@ -187,4 +243,5 @@ export async function addToCodex(bridge: BridgeConfig, home = homedir()): Promis
     ""
   ].join("\n");
   await writeFile(configPath, existing.replace(/\n*$/, "\n") + block, "utf8");
+  await installCodexSkill(home).catch(() => undefined);
 }

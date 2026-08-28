@@ -79,6 +79,8 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
   const dataDir = options.dataDir ?? join(homedir(), ".escalidrau");
   await mkdir(dataDir, { recursive: true });
   const libraryPath = join(dataDir, "library.json");
+  // Versions of the bundled icon packs already installed into the library.
+  const packsPath = join(dataDir, "library-packs.json");
 
   const store = new SceneStore();
   const tracker = new ChangeTracker();
@@ -204,6 +206,41 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
     response.end();
   };
 
+  const handleLibraryPacks = async (request: IncomingMessage, response: ServerResponse) => {
+    if (request.method === "GET") {
+      try {
+        const parsed = JSON.parse(await readFile(packsPath, "utf8")) as unknown;
+        sendJson(response, 200, parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {});
+      } catch {
+        sendJson(response, 200, {});
+      }
+      return;
+    }
+    if (request.method === "PUT") {
+      let body: unknown;
+      try {
+        body = await readJsonBody(request);
+      } catch {
+        sendJson(response, 400, { error: "Invalid JSON body" });
+        return;
+      }
+      const valid =
+        body !== null &&
+        typeof body === "object" &&
+        !Array.isArray(body) &&
+        Object.values(body as Record<string, unknown>).every((value) => typeof value === "string");
+      if (!valid) {
+        sendJson(response, 400, { error: "Expected an object of pack versions" });
+        return;
+      }
+      await writeFile(packsPath, JSON.stringify(body), "utf8");
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+    response.writeHead(405);
+    response.end();
+  };
+
   const httpServer: Server = createServer((request, response) => {
     const urlPath = (request.url ?? "/").split("?")[0];
     if (urlPath === "/mcp") {
@@ -226,6 +263,14 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
         return;
       }
       sendJson(response, 200, options.whatsNew?.get() ?? null);
+      return;
+    }
+    if (urlPath === "/library/packs") {
+      void handleLibraryPacks(request, response).catch(() => {
+        if (!response.headersSent) {
+          sendJson(response, 500, { error: "Internal error" });
+        }
+      });
       return;
     }
     if (urlPath === "/library") {

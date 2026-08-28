@@ -7,9 +7,13 @@ import {
   addToClaudeDesktop,
   addToCodex,
   claudeCodeHookStatus,
+  claudeCodeSkillStatus,
   claudeCodeStatus,
   claudeDesktopStatus,
+  codexSkillStatus,
   codexStatus,
+  installClaudeCodeSkill,
+  installCodexSkill,
   type BridgeConfig,
   type ClientStatus
 } from "./installers.js";
@@ -66,6 +70,20 @@ const CLIENTS: ClientDefinition[] = [
     addLabel: "Install Claude Code hook (canvas updates on every prompt)…",
     postInstallNote:
       "Each message you send in Claude Code will now include your recent canvas edits."
+  },
+  {
+    name: "Claude Code skill",
+    status: () => claudeCodeSkillStatus(),
+    add: () => installClaudeCodeSkill(),
+    addLabel: "Install the Escalidrau skill for Claude Code (how to draw well here)…",
+    postInstallNote: "Claude Code picks up the skill in its current session; it is kept up to date with the app."
+  },
+  {
+    name: "Codex skill",
+    status: () => codexSkillStatus(),
+    add: () => installCodexSkill(),
+    addLabel: "Install the Escalidrau skill for Codex (how to draw well here)…",
+    postInstallNote: "Restart Codex to load the skill; it is kept up to date with the app."
   }
 ];
 

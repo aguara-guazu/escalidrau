@@ -6,6 +6,7 @@ import { startApp, type AppHandle } from "../../server/src/app.js";
 import { rebuildMenu } from "./menu.js";
 import { Splash } from "./splash.js";
 import { AppState } from "./state.js";
+import { refreshInstalledSkills } from "./installers.js";
 import {
   canSelfInstall,
   cleanupLeftovers,
@@ -246,6 +247,8 @@ if (!gotLock) {
     mkdirSync(dataDir, { recursive: true });
     const state = new AppState(dataDir);
     await state.load();
+    // Installed agent skills follow the bundled copy across updates.
+    await refreshInstalledSkills().catch(() => undefined);
 
     if (app.isPackaged && canSelfInstall) {
       await cleanupLeftovers(bundlePath());

@@ -1,0 +1,2569 @@
+{
+  "services": {
+    "amazon-athena": {
+      "name": "Amazon Athena",
+      "description": "Serverless SQL queries over data in S3"
+    },
+    "amazon-cloudsearch": {
+      "name": "Amazon CloudSearch",
+      "description": "Managed search service for websites and apps"
+    },
+    "amazon-data-firehose": {
+      "name": "Amazon Data Firehose",
+      "description": "Streams data into S3, Redshift, OpenSearch and more"
+    },
+    "amazon-datazone": {
+      "name": "Amazon DataZone",
+      "description": "Data catalog and governance for sharing data across teams"
+    },
+    "amazon-emr": {
+      "name": "Amazon EMR",
+      "description": "Managed big data clusters (Spark, Hadoop, Hive, Presto)"
+    },
+    "amazon-finspace": {
+      "name": "Amazon FinSpace",
+      "description": "Data management and analytics for capital markets"
+    },
+    "amazon-kinesis": {
+      "name": "Amazon Kinesis",
+      "description": "Family of services for real-time streaming data"
+    },
+    "amazon-kinesis-data-streams": {
+      "name": "Amazon Kinesis Data Streams",
+      "description": "Real-time data stream ingestion at scale"
+    },
+    "amazon-kinesis-video-streams": {
+      "name": "Amazon Kinesis Video Streams",
+      "description": "Ingests and processes video streams from devices"
+    },
+    "amazon-managed-service-for-apache-flink": {
+      "name": "Amazon Managed Service for Apache Flink",
+      "description": "Real-time stream processing with Apache Flink"
+    },
+    "amazon-managed-streaming-for-apache-kafka": {
+      "name": "Amazon Managed Streaming for Apache Kafka (MSK)",
+      "label": "Amazon MSK",
+      "description": "Managed Apache Kafka clusters"
+    },
+    "amazon-opensearch-service": {
+      "name": "Amazon OpenSearch Service",
+      "description": "Managed OpenSearch for search, logs and analytics"
+    },
+    "amazon-quicksight": {
+      "name": "Amazon QuickSight",
+      "description": "Business intelligence dashboards and reports"
+    },
+    "amazon-redshift": {
+      "name": "Amazon Redshift",
+      "description": "Cloud data warehouse for petabyte-scale analytics"
+    },
+    "amazon-sagemaker": {
+      "name": "Amazon SageMaker",
+      "description": "Unified platform for data, analytics and AI"
+    },
+    "aws-clean-rooms": {
+      "name": "AWS Clean Rooms",
+      "description": "Collaborate on datasets without sharing raw data"
+    },
+    "aws-data-exchange": {
+      "name": "AWS Data Exchange",
+      "description": "Find, subscribe to and use third-party datasets"
+    },
+    "aws-entity-resolution": {
+      "name": "AWS Entity Resolution",
+      "description": "Matches and links related records across datasets"
+    },
+    "aws-glue": {
+      "name": "AWS Glue",
+      "description": "Serverless data integration and ETL"
+    },
+    "aws-glue-databrew": {
+      "name": "AWS Glue DataBrew",
+      "description": "Visual data preparation and cleaning"
+    },
+    "aws-lake-formation": {
+      "name": "AWS Lake Formation",
+      "description": "Builds and secures data lakes on S3"
+    },
+    "amazon-appflow": {
+      "name": "Amazon AppFlow",
+      "description": "No-code data flows between SaaS apps and AWS"
+    },
+    "amazon-eventbridge": {
+      "name": "Amazon EventBridge",
+      "description": "Serverless event bus connecting apps and services"
+    },
+    "amazon-managed-workflows-for-apache-airflow": {
+      "name": "Amazon Managed Workflows for Apache Airflow (MWAA)",
+      "label": "Amazon MWAA",
+      "description": "Managed Apache Airflow for orchestrating pipelines"
+    },
+    "amazon-mq": {
+      "name": "Amazon MQ",
+      "description": "Managed ActiveMQ and RabbitMQ message brokers"
+    },
+    "amazon-simple-notification-service": {
+      "name": "Amazon Simple Notification Service (SNS)",
+      "label": "Amazon SNS",
+      "description": "Pub/sub messaging and push notifications"
+    },
+    "amazon-simple-queue-service": {
+      "name": "Amazon Simple Queue Service (SQS)",
+      "label": "Amazon SQS",
+      "description": "Fully managed message queues"
+    },
+    "aws-appsync": {
+      "name": "AWS AppSync",
+      "description": "Managed GraphQL and pub/sub APIs"
+    },
+    "aws-b2b-data-interchange": {
+      "name": "AWS B2B Data Interchange",
+      "description": "Automates EDI document exchange with partners"
+    },
+    "aws-express-workflows": {
+      "name": "AWS Step Functions Express Workflows",
+      "label": "Step Functions\nExpress Workflows",
+      "description": "High-volume, short-duration Step Functions workflows"
+    },
+    "aws-step-functions": {
+      "name": "AWS Step Functions",
+      "description": "Serverless workflow orchestration (state machines)"
+    },
+    "amazon-augmented-ai-a2i": {
+      "name": "Amazon Augmented AI (A2I)",
+      "description": "Human review workflows for ML predictions"
+    },
+    "amazon-bedrock": {
+      "name": "Amazon Bedrock",
+      "description": "Foundation models and generative AI via API"
+    },
+    "amazon-codeguru": {
+      "name": "Amazon CodeGuru",
+      "description": "ML-powered code reviews and profiling"
+    },
+    "amazon-codewhisperer": {
+      "name": "Amazon CodeWhisperer",
+      "description": "AI coding companion (now Amazon Q Developer)"
+    },
+    "amazon-comprehend": {
+      "name": "Amazon Comprehend",
+      "description": "NLP: entities, sentiment and topics from text"
+    },
+    "amazon-comprehend-medical": {
+      "name": "Amazon Comprehend Medical",
+      "description": "Extracts medical information from clinical text"
+    },
+    "amazon-devops-guru": {
+      "name": "Amazon DevOps Guru",
+      "description": "ML-based detection of operational issues"
+    },
+    "amazon-elastic-inference": {
+      "name": "Amazon Elastic Inference",
+      "description": "Attaches GPU acceleration to instances for inference"
+    },
+    "amazon-forecast": {
+      "name": "Amazon Forecast",
+      "description": "Time-series forecasting with ML"
+    },
+    "amazon-fraud-detector": {
+      "name": "Amazon Fraud Detector",
+      "description": "Detects online fraud with ML models"
+    },
+    "amazon-kendra": {
+      "name": "Amazon Kendra",
+      "description": "Intelligent enterprise search"
+    },
+    "amazon-lex": {
+      "name": "Amazon Lex",
+      "description": "Conversational chatbots and voice interfaces"
+    },
+    "amazon-lookout-for-equipment": {
+      "name": "Amazon Lookout for Equipment",
+      "description": "Predicts equipment failures from sensor data"
+    },
+    "amazon-lookout-for-metrics": {
+      "name": "Amazon Lookout for Metrics",
+      "description": "Anomaly detection in business metrics"
+    },
+    "amazon-lookout-for-vision": {
+      "name": "Amazon Lookout for Vision",
+      "description": "Visual defect detection with computer vision"
+    },
+    "amazon-monitron": {
+      "name": "Amazon Monitron",
+      "description": "End-to-end equipment condition monitoring"
+    },
+    "amazon-nova": {
+      "name": "Amazon Nova",
+      "description": "Amazon's family of foundation models"
+    },
+    "amazon-personalize": {
+      "name": "Amazon Personalize",
+      "description": "Real-time personalized recommendations"
+    },
+    "amazon-polly": {
+      "name": "Amazon Polly",
+      "description": "Text-to-speech"
+    },
+    "amazon-q": {
+      "name": "Amazon Q",
+      "description": "Generative AI assistant for business and developers"
+    },
+    "amazon-rekognition": {
+      "name": "Amazon Rekognition",
+      "description": "Image and video analysis"
+    },
+    "amazon-sagemaker-ai": {
+      "name": "Amazon SageMaker AI",
+      "description": "Build, train and deploy ML models"
+    },
+    "amazon-sagemaker-ground-truth": {
+      "name": "Amazon SageMaker Ground Truth",
+      "description": "Data labeling for ML training sets"
+    },
+    "amazon-sagemaker-studio-lab": {
+      "name": "Amazon SageMaker Studio Lab",
+      "description": "Free notebook environment for learning ML"
+    },
+    "amazon-textract": {
+      "name": "Amazon Textract",
+      "description": "Extracts text and data from scanned documents"
+    },
+    "amazon-transcribe": {
+      "name": "Amazon Transcribe",
+      "description": "Speech-to-text"
+    },
+    "amazon-translate": {
+      "name": "Amazon Translate",
+      "description": "Neural machine translation"
+    },
+    "apache-mxnet-on-aws": {
+      "name": "Apache MXNet on AWS",
+      "description": "Deep learning framework on AWS"
+    },
+    "aws-app-studio": {
+      "name": "AWS App Studio",
+      "description": "Generative AI-powered low-code app builder"
+    },
+    "aws-deep-learning-amis": {
+      "name": "AWS Deep Learning AMIs",
+      "description": "EC2 images preloaded with ML frameworks"
+    },
+    "aws-deep-learning-containers": {
+      "name": "AWS Deep Learning Containers",
+      "description": "Docker images for training and serving ML"
+    },
+    "aws-deepcomposer": {
+      "name": "AWS DeepComposer",
+      "description": "Generative AI music keyboard for learning ML"
+    },
+    "aws-deepracer": {
+      "name": "AWS DeepRacer",
+      "description": "Reinforcement learning with a 1/18 scale race car"
+    },
+    "aws-healthimaging": {
+      "name": "AWS HealthImaging",
+      "description": "Stores and analyzes medical imaging data"
+    },
+    "aws-healthlake": {
+      "name": "AWS HealthLake",
+      "description": "FHIR-based health data store and analytics"
+    },
+    "aws-healthomics": {
+      "name": "AWS HealthOmics",
+      "description": "Stores and analyzes genomic and biological data"
+    },
+    "aws-healthscribe": {
+      "name": "AWS HealthScribe",
+      "description": "Generates clinical notes from conversations"
+    },
+    "aws-neuron": {
+      "name": "AWS Neuron",
+      "description": "SDK for Inferentia and Trainium ML chips"
+    },
+    "aws-panorama": {
+      "name": "AWS Panorama",
+      "description": "Computer vision at the edge on IP cameras"
+    },
+    "pytorch-on-aws": {
+      "name": "PyTorch on AWS",
+      "description": "Deep learning framework on AWS"
+    },
+    "tensorflow-on-aws": {
+      "name": "TensorFlow on AWS",
+      "description": "Deep learning framework on AWS"
+    },
+    "amazon-managed-blockchain": {
+      "name": "Amazon Managed Blockchain",
+      "description": "Managed Hyperledger Fabric and Ethereum nodes"
+    },
+    "amazon-quantum-ledger-database": {
+      "name": "Amazon Quantum Ledger Database (QLDB)",
+      "label": "Amazon QLDB",
+      "description": "Immutable, cryptographically verifiable ledger"
+    },
+    "alexa-for-business": {
+      "name": "Alexa for Business",
+      "description": "Alexa voice assistant for the workplace"
+    },
+    "amazon-chime": {
+      "name": "Amazon Chime",
+      "description": "Meetings, video calls and chat"
+    },
+    "amazon-chime-sdk": {
+      "name": "Amazon Chime SDK",
+      "description": "Embeds real-time audio, video and messaging in apps"
+    },
+    "amazon-connect": {
+      "name": "Amazon Connect",
+      "description": "Cloud contact center"
+    },
+    "amazon-pinpoint": {
+      "name": "Amazon Pinpoint",
+      "description": "Multichannel customer engagement and campaigns"
+    },
+    "amazon-pinpoint-apis": {
+      "name": "Amazon Pinpoint APIs",
+      "description": "APIs for SMS, email and push messaging"
+    },
+    "amazon-simple-email-service": {
+      "name": "Amazon Simple Email Service (SES)",
+      "label": "Amazon SES",
+      "description": "Bulk and transactional email sending"
+    },
+    "amazon-workdocs": {
+      "name": "Amazon WorkDocs",
+      "description": "Document storage and collaboration"
+    },
+    "amazon-workdocs-sdk": {
+      "name": "Amazon WorkDocs SDK",
+      "description": "Integrates WorkDocs content into apps"
+    },
+    "amazon-workmail": {
+      "name": "Amazon WorkMail",
+      "description": "Business email and calendaring"
+    },
+    "aws-appfabric": {
+      "name": "AWS AppFabric",
+      "description": "Connects SaaS apps for security and productivity"
+    },
+    "aws-end-user-messaging": {
+      "name": "AWS End User Messaging",
+      "description": "SMS, push and WhatsApp messaging to end users"
+    },
+    "aws-supply-chain": {
+      "name": "AWS Supply Chain",
+      "description": "Supply chain visibility and insights"
+    },
+    "aws-wickr": {
+      "name": "AWS Wickr",
+      "description": "End-to-end encrypted messaging and collaboration"
+    },
+    "aws-billing-conductor": {
+      "name": "AWS Billing Conductor",
+      "description": "Custom billing rates and views for groups of accounts"
+    },
+    "aws-budgets": {
+      "name": "AWS Budgets",
+      "description": "Budget alerts for cost and usage"
+    },
+    "aws-cost-and-usage-report": {
+      "name": "AWS Cost and Usage Report",
+      "description": "Detailed billing data delivered to S3"
+    },
+    "aws-cost-explorer": {
+      "name": "AWS Cost Explorer",
+      "description": "Visualizes and analyzes costs and usage"
+    },
+    "reserved-instance-reporting": {
+      "name": "Reserved Instance Reporting",
+      "description": "Utilization and coverage of Reserved Instances"
+    },
+    "savings-plans": {
+      "name": "Savings Plans",
+      "description": "Flexible pricing for compute commitments"
+    },
+    "amazon-dcv": {
+      "name": "Amazon DCV",
+      "description": "High-performance remote display protocol"
+    },
+    "amazon-ec2": {
+      "name": "Amazon EC2",
+      "description": "Resizable virtual servers in the cloud"
+    },
+    "amazon-ec2-auto-scaling": {
+      "name": "Amazon EC2 Auto Scaling",
+      "description": "Scales EC2 capacity to match demand"
+    },
+    "amazon-ec2-image-builder": {
+      "name": "EC2 Image Builder",
+      "description": "Automates building and patching machine images"
+    },
+    "amazon-elastic-vmware-service": {
+      "name": "Amazon Elastic VMware Service",
+      "description": "Runs VMware Cloud Foundation on AWS"
+    },
+    "amazon-lightsail": {
+      "name": "Amazon Lightsail",
+      "description": "Simple VPS with bundled compute, storage and networking"
+    },
+    "amazon-lightsail-for-research": {
+      "name": "Amazon Lightsail for Research",
+      "description": "Preconfigured research applications on Lightsail"
+    },
+    "aws-app-runner": {
+      "name": "AWS App Runner",
+      "description": "Deploys web apps and APIs from source or a container"
+    },
+    "aws-batch": {
+      "name": "AWS Batch",
+      "description": "Runs batch computing jobs at any scale"
+    },
+    "aws-compute-optimizer": {
+      "name": "AWS Compute Optimizer",
+      "description": "Recommends optimal compute resources"
+    },
+    "aws-elastic-beanstalk": {
+      "name": "AWS Elastic Beanstalk",
+      "description": "Deploys and scales web apps (PaaS)"
+    },
+    "aws-lambda": {
+      "name": "AWS Lambda",
+      "description": "Serverless functions that run on demand"
+    },
+    "aws-local-zones": {
+      "name": "AWS Local Zones",
+      "description": "AWS infrastructure close to large population centers"
+    },
+    "aws-nitro-enclaves": {
+      "name": "AWS Nitro Enclaves",
+      "description": "Isolated compute environments for sensitive data"
+    },
+    "aws-outposts-family": {
+      "name": "AWS Outposts family",
+      "description": "AWS infrastructure and services on premises"
+    },
+    "aws-outposts-rack": {
+      "name": "AWS Outposts rack",
+      "description": "Rack-scale AWS infrastructure on premises"
+    },
+    "aws-outposts-servers": {
+      "name": "AWS Outposts servers",
+      "description": "1U/2U AWS servers for on-premises locations"
+    },
+    "aws-parallel-cluster": {
+      "name": "AWS ParallelCluster",
+      "description": "Deploys and manages HPC clusters"
+    },
+    "aws-parallel-computing-service": {
+      "name": "AWS Parallel Computing Service",
+      "description": "Managed HPC clusters with Slurm"
+    },
+    "aws-serverless-application-repository": {
+      "name": "AWS Serverless Application Repository",
+      "label": "Serverless Application\nRepository",
+      "description": "Discover and deploy serverless applications"
+    },
+    "aws-simspace-weaver": {
+      "name": "AWS SimSpace Weaver",
+      "description": "Runs large-scale spatial simulations"
+    },
+    "aws-wavelength": {
+      "name": "AWS Wavelength",
+      "description": "AWS compute at the edge of 5G networks"
+    },
+    "bottlerocket": {
+      "name": "Bottlerocket",
+      "description": "Linux OS purpose-built for running containers"
+    },
+    "elastic-fabric-adapter": {
+      "name": "Elastic Fabric Adapter (EFA)",
+      "description": "Low-latency network interface for HPC and ML"
+    },
+    "nice-enginframe": {
+      "name": "NICE EnginFrame",
+      "description": "Web portal for HPC job submission"
+    },
+    "amazon-ecs-anywhere": {
+      "name": "Amazon ECS Anywhere",
+      "description": "Runs ECS tasks on customer-managed infrastructure"
+    },
+    "amazon-eks-anywhere": {
+      "name": "Amazon EKS Anywhere",
+      "description": "Kubernetes clusters on premises with EKS tooling"
+    },
+    "amazon-eks-cloud": {
+      "name": "Amazon EKS Cloud",
+      "description": "EKS control plane running in the AWS cloud"
+    },
+    "amazon-eks-distro": {
+      "name": "Amazon EKS Distro",
+      "description": "The Kubernetes distribution used by EKS"
+    },
+    "amazon-elastic-container-registry": {
+      "name": "Amazon Elastic Container Registry (ECR)",
+      "label": "Amazon ECR",
+      "description": "Container image registry"
+    },
+    "amazon-elastic-container-service": {
+      "name": "Amazon Elastic Container Service (ECS)",
+      "label": "Amazon ECS",
+      "description": "Container orchestration"
+    },
+    "amazon-elastic-kubernetes-service": {
+      "name": "Amazon Elastic Kubernetes Service (EKS)",
+      "label": "Amazon EKS",
+      "description": "Managed Kubernetes"
+    },
+    "aws-fargate": {
+      "name": "AWS Fargate",
+      "description": "Serverless compute for containers (ECS/EKS)"
+    },
+    "red-hat-openshift-service-on-aws": {
+      "name": "Red Hat OpenShift Service on AWS (ROSA)",
+      "label": "Red Hat OpenShift\nService on AWS",
+      "description": "Managed OpenShift clusters"
+    },
+    "aws-activate": {
+      "name": "AWS Activate",
+      "description": "Credits and support for startups"
+    },
+    "aws-iq": {
+      "name": "AWS IQ",
+      "description": "Marketplace for hiring AWS-certified experts"
+    },
+    "aws-managed-services": {
+      "name": "AWS Managed Services",
+      "description": "Operates AWS infrastructure on your behalf"
+    },
+    "aws-professional-services": {
+      "name": "AWS Professional Services",
+      "description": "Consulting team from AWS"
+    },
+    "aws-repost": {
+      "name": "AWS re:Post",
+      "description": "Community Q&A for AWS"
+    },
+    "aws-repost-private": {
+      "name": "AWS re:Post Private",
+      "description": "Private knowledge community for an organization"
+    },
+    "aws-support": {
+      "name": "AWS Support",
+      "description": "Technical support plans"
+    },
+    "aws-training-certification": {
+      "name": "AWS Training and Certification",
+      "description": "Learning paths and certifications"
+    },
+    "amazon-aurora": {
+      "name": "Amazon Aurora",
+      "description": "MySQL/PostgreSQL-compatible relational database"
+    },
+    "amazon-documentdb": {
+      "name": "Amazon DocumentDB",
+      "description": "MongoDB-compatible document database"
+    },
+    "amazon-dynamodb": {
+      "name": "Amazon DynamoDB",
+      "description": "Serverless key-value and document NoSQL database"
+    },
+    "amazon-elasticache": {
+      "name": "Amazon ElastiCache",
+      "description": "In-memory cache (Redis, Valkey, Memcached)"
+    },
+    "amazon-keyspaces": {
+      "name": "Amazon Keyspaces",
+      "description": "Apache Cassandra-compatible database"
+    },
+    "amazon-memorydb": {
+      "name": "Amazon MemoryDB",
+      "description": "Durable in-memory database (Redis/Valkey compatible)"
+    },
+    "amazon-neptune": {
+      "name": "Amazon Neptune",
+      "description": "Graph database"
+    },
+    "amazon-rds": {
+      "name": "Amazon RDS",
+      "description": "Managed relational databases (MySQL, PostgreSQL, SQL Server...)"
+    },
+    "amazon-timestream": {
+      "name": "Amazon Timestream",
+      "description": "Time-series database"
+    },
+    "aws-database-migration-service": {
+      "name": "AWS Database Migration Service (DMS)",
+      "label": "AWS DMS",
+      "description": "Migrates and replicates databases"
+    },
+    "oracle-database-at-aws": {
+      "name": "Oracle Database@AWS",
+      "description": "Oracle Exadata and Autonomous Database inside AWS"
+    },
+    "amazon-codecatalyst": {
+      "name": "Amazon CodeCatalyst",
+      "description": "Unified software development service"
+    },
+    "amazon-corretto": {
+      "name": "Amazon Corretto",
+      "description": "Amazon's distribution of OpenJDK"
+    },
+    "aws-cloud-control-api": {
+      "name": "AWS Cloud Control API",
+      "description": "Uniform CRUD API for AWS resources"
+    },
+    "aws-cloud-development-kit": {
+      "name": "AWS Cloud Development Kit (CDK)",
+      "label": "AWS CDK",
+      "description": "Defines infrastructure in code (TypeScript, Python...)"
+    },
+    "aws-cloud9": {
+      "name": "AWS Cloud9",
+      "description": "Cloud-based IDE"
+    },
+    "aws-cloudshell": {
+      "name": "AWS CloudShell",
+      "description": "Browser-based shell with the AWS CLI"
+    },
+    "aws-codeartifact": {
+      "name": "AWS CodeArtifact",
+      "description": "Package repository (npm, Maven, PyPI...)"
+    },
+    "aws-codebuild": {
+      "name": "AWS CodeBuild",
+      "description": "Managed build and test service"
+    },
+    "aws-codecommit": {
+      "name": "AWS CodeCommit",
+      "description": "Managed Git repositories"
+    },
+    "aws-codedeploy": {
+      "name": "AWS CodeDeploy",
+      "description": "Automated deployments to EC2, Lambda and ECS"
+    },
+    "aws-codepipeline": {
+      "name": "AWS CodePipeline",
+      "description": "CI/CD pipelines"
+    },
+    "aws-command-line-interface": {
+      "name": "AWS Command Line Interface (CLI)",
+      "label": "AWS CLI",
+      "description": "Command-line tool for AWS"
+    },
+    "aws-fault-injection-service": {
+      "name": "AWS Fault Injection Service",
+      "description": "Chaos engineering experiments"
+    },
+    "aws-infrastructure-composer": {
+      "name": "AWS Infrastructure Composer",
+      "description": "Visual designer for serverless apps and IaC"
+    },
+    "aws-tools-and-sdks": {
+      "name": "AWS Tools and SDKs",
+      "description": "SDKs and toolkits for AWS"
+    },
+    "aws-x-ray": {
+      "name": "AWS X-Ray",
+      "description": "Distributed tracing"
+    },
+    "amazon-appstream-2": {
+      "name": "Amazon AppStream 2.0",
+      "description": "Streams desktop applications to browsers"
+    },
+    "amazon-workspaces-family": {
+      "name": "Amazon WorkSpaces Family",
+      "description": "Virtual desktops (DaaS)"
+    },
+    "amazon-location-service": {
+      "name": "Amazon Location Service",
+      "description": "Maps, geocoding, routing and geofencing"
+    },
+    "aws-amplify": {
+      "name": "AWS Amplify",
+      "description": "Builds and hosts full-stack web and mobile apps"
+    },
+    "aws-device-farm": {
+      "name": "AWS Device Farm",
+      "description": "Tests apps on real mobile devices and browsers"
+    },
+    "amazon-gamelift-servers": {
+      "name": "Amazon GameLift Servers",
+      "description": "Hosting for multiplayer game servers"
+    },
+    "amazon-gamelift-streams": {
+      "name": "Amazon GameLift Streams",
+      "description": "Streams games to any device"
+    },
+    "open-3d-engine": {
+      "name": "Open 3D Engine (O3DE)",
+      "description": "Open source 3D game engine"
+    },
+    "aws-marketplace": {
+      "name": "AWS Marketplace",
+      "description": "Catalog of third-party software and data"
+    },
+    "aws-iot-analytics": {
+      "name": "AWS IoT Analytics",
+      "description": "Analytics for IoT device data"
+    },
+    "aws-iot-button": {
+      "name": "AWS IoT Button",
+      "description": "Programmable Wi-Fi button"
+    },
+    "aws-iot-core": {
+      "name": "AWS IoT Core",
+      "description": "Connects devices to AWS over MQTT and HTTPS"
+    },
+    "aws-iot-device-defender": {
+      "name": "AWS IoT Device Defender",
+      "description": "Security auditing for IoT fleets"
+    },
+    "aws-iot-device-management": {
+      "name": "AWS IoT Device Management",
+      "description": "Onboards, organizes and updates device fleets"
+    },
+    "aws-iot-events": {
+      "name": "AWS IoT Events",
+      "description": "Detects and responds to events from IoT sensors"
+    },
+    "aws-iot-expresslink": {
+      "name": "AWS IoT ExpressLink",
+      "description": "Connectivity modules for IoT devices"
+    },
+    "aws-iot-fleetwise": {
+      "name": "AWS IoT FleetWise",
+      "description": "Collects and transforms vehicle data"
+    },
+    "aws-iot-greengrass": {
+      "name": "AWS IoT Greengrass",
+      "description": "Edge runtime for IoT devices"
+    },
+    "aws-iot-sitewise": {
+      "name": "AWS IoT SiteWise",
+      "description": "Collects and analyzes industrial equipment data"
+    },
+    "aws-iot-twinmaker": {
+      "name": "AWS IoT TwinMaker",
+      "description": "Digital twins of real-world systems"
+    },
+    "freertos": {
+      "name": "FreeRTOS",
+      "description": "Real-time OS for microcontrollers"
+    },
+    "amazon-cloudwatch": {
+      "name": "Amazon CloudWatch",
+      "description": "Metrics, logs, alarms and dashboards"
+    },
+    "amazon-managed-grafana": {
+      "name": "Amazon Managed Grafana",
+      "description": "Managed Grafana dashboards"
+    },
+    "amazon-managed-service-for-prometheus": {
+      "name": "Amazon Managed Service for Prometheus",
+      "description": "Managed Prometheus-compatible monitoring"
+    },
+    "aws-appconfig": {
+      "name": "AWS AppConfig",
+      "description": "Feature flags and dynamic configuration"
+    },
+    "aws-application-auto-scaling": {
+      "name": "AWS Application Auto Scaling",
+      "description": "Scales resources beyond EC2 (DynamoDB, ECS...)"
+    },
+    "aws-auto-scaling": {
+      "name": "AWS Auto Scaling",
+      "description": "Unified scaling plans across services"
+    },
+    "aws-backint-agent": {
+      "name": "AWS Backint Agent",
+      "description": "SAP HANA backups to S3"
+    },
+    "aws-chatbot": {
+      "name": "AWS Chatbot",
+      "description": "AWS notifications and commands in Slack and Chime"
+    },
+    "aws-cloudformation": {
+      "name": "AWS CloudFormation",
+      "description": "Infrastructure as code with templates"
+    },
+    "aws-cloudtrail": {
+      "name": "AWS CloudTrail",
+      "description": "Audit log of API activity"
+    },
+    "aws-config": {
+      "name": "AWS Config",
+      "description": "Tracks resource configuration and compliance"
+    },
+    "aws-console-mobile-application": {
+      "name": "AWS Console Mobile Application",
+      "description": "Monitors and manages AWS from a phone"
+    },
+    "aws-control-tower": {
+      "name": "AWS Control Tower",
+      "description": "Sets up and governs a multi-account landing zone"
+    },
+    "aws-distro-for-opentelemetry": {
+      "name": "AWS Distro for OpenTelemetry",
+      "description": "OpenTelemetry distribution for traces and metrics"
+    },
+    "aws-health-dashboard": {
+      "name": "AWS Health Dashboard",
+      "description": "Status of AWS services and your account events"
+    },
+    "aws-launch-wizard": {
+      "name": "AWS Launch Wizard",
+      "description": "Guided deployment of enterprise workloads (SAP, SQL Server)"
+    },
+    "aws-license-manager": {
+      "name": "AWS License Manager",
+      "description": "Tracks software licenses"
+    },
+    "aws-management-console": {
+      "name": "AWS Management Console",
+      "description": "Web UI for AWS"
+    },
+    "aws-organizations": {
+      "name": "AWS Organizations",
+      "description": "Central management of multiple AWS accounts"
+    },
+    "aws-proton": {
+      "name": "AWS Proton",
+      "description": "Self-service templates for container and serverless deployments"
+    },
+    "aws-resilience-hub": {
+      "name": "AWS Resilience Hub",
+      "description": "Assesses and improves application resilience"
+    },
+    "aws-resource-explorer": {
+      "name": "AWS Resource Explorer",
+      "description": "Searches for resources across regions"
+    },
+    "aws-service-catalog": {
+      "name": "AWS Service Catalog",
+      "description": "Curated catalog of approved IT services"
+    },
+    "aws-service-management-connector": {
+      "name": "AWS Service Management Connector",
+      "description": "Integrates AWS with ServiceNow and Jira"
+    },
+    "aws-systems-manager": {
+      "name": "AWS Systems Manager",
+      "description": "Operations hub: patching, run commands, parameters"
+    },
+    "aws-telco-network-builder": {
+      "name": "AWS Telco Network Builder",
+      "description": "Deploys and manages telecom networks"
+    },
+    "aws-trusted-advisor": {
+      "name": "AWS Trusted Advisor",
+      "description": "Best-practice recommendations"
+    },
+    "aws-user-notifications": {
+      "name": "AWS User Notifications",
+      "description": "Centralized notifications from AWS services"
+    },
+    "aws-well-architected-tool": {
+      "name": "AWS Well-Architected Tool",
+      "description": "Reviews workloads against best practices"
+    },
+    "amazon-elastic-transcoder": {
+      "name": "Amazon Elastic Transcoder",
+      "description": "Media transcoding in the cloud"
+    },
+    "amazon-interactive-video-service": {
+      "name": "Amazon Interactive Video Service (IVS)",
+      "label": "Amazon IVS",
+      "description": "Managed low-latency live streaming"
+    },
+    "aws-deadline-cloud": {
+      "name": "AWS Deadline Cloud",
+      "description": "Render farm management for visual effects"
+    },
+    "aws-elemental-appliances-software": {
+      "name": "AWS Elemental Appliances & Software",
+      "description": "On-premises video processing products"
+    },
+    "aws-elemental-conductor": {
+      "name": "AWS Elemental Conductor",
+      "description": "Manages Elemental video appliances"
+    },
+    "aws-elemental-delta": {
+      "name": "AWS Elemental Delta",
+      "description": "Video delivery and just-in-time packaging"
+    },
+    "aws-elemental-link": {
+      "name": "AWS Elemental Link",
+      "description": "Device that sends live video to MediaLive"
+    },
+    "aws-elemental-live": {
+      "name": "AWS Elemental Live",
+      "description": "On-premises live video encoding"
+    },
+    "aws-elemental-mediaconnect": {
+      "name": "AWS Elemental MediaConnect",
+      "description": "Secure live video transport"
+    },
+    "aws-elemental-mediaconvert": {
+      "name": "AWS Elemental MediaConvert",
+      "description": "File-based video transcoding"
+    },
+    "aws-elemental-medialive": {
+      "name": "AWS Elemental MediaLive",
+      "description": "Live video encoding"
+    },
+    "aws-elemental-mediapackage": {
+      "name": "AWS Elemental MediaPackage",
+      "description": "Video origination and packaging"
+    },
+    "aws-elemental-mediastore": {
+      "name": "AWS Elemental MediaStore",
+      "description": "Storage optimized for media"
+    },
+    "aws-elemental-mediatailor": {
+      "name": "AWS Elemental MediaTailor",
+      "description": "Server-side ad insertion and channel assembly"
+    },
+    "aws-elemental-server": {
+      "name": "AWS Elemental Server",
+      "description": "On-premises file-based video processing"
+    },
+    "aws-thinkbox-deadline": {
+      "name": "AWS Thinkbox Deadline",
+      "description": "Render management software"
+    },
+    "aws-thinkbox-frost": {
+      "name": "AWS Thinkbox Frost",
+      "description": "Particle meshing plugin"
+    },
+    "aws-thinkbox-krakatoa": {
+      "name": "AWS Thinkbox Krakatoa",
+      "description": "Particle rendering toolkit"
+    },
+    "aws-thinkbox-sequoia": {
+      "name": "AWS Thinkbox Sequoia",
+      "description": "Point cloud processing and meshing"
+    },
+    "aws-thinkbox-stoke": {
+      "name": "AWS Thinkbox Stoke",
+      "description": "Particle simulation tool"
+    },
+    "aws-thinkbox-xmesh": {
+      "name": "AWS Thinkbox XMesh",
+      "description": "Geometry caching for animated meshes"
+    },
+    "aws-application-discovery-service": {
+      "name": "AWS Application Discovery Service",
+      "description": "Discovers on-premises servers for migration planning"
+    },
+    "aws-application-migration-service": {
+      "name": "AWS Application Migration Service (MGN)",
+      "label": "AWS Application\nMigration Service",
+      "description": "Lift-and-shift server migration"
+    },
+    "aws-data-transfer-terminal": {
+      "name": "AWS Data Transfer Terminal",
+      "description": "Physical locations for fast data uploads"
+    },
+    "aws-datasync": {
+      "name": "AWS DataSync",
+      "description": "Moves data between on-premises and AWS storage"
+    },
+    "aws-mainframe-modernization": {
+      "name": "AWS Mainframe Modernization",
+      "description": "Migrates and modernizes mainframe workloads"
+    },
+    "aws-migration-evaluator": {
+      "name": "AWS Migration Evaluator",
+      "description": "Business case for migrating to AWS"
+    },
+    "aws-migration-hub": {
+      "name": "AWS Migration Hub",
+      "description": "Tracks migrations across tools"
+    },
+    "aws-transfer-family": {
+      "name": "AWS Transfer Family",
+      "description": "Managed SFTP, FTPS, FTP and AS2 endpoints"
+    },
+    "aws-transform": {
+      "name": "AWS Transform",
+      "description": "Agentic AI for modernizing legacy workloads"
+    },
+    "amazon-api-gateway": {
+      "name": "Amazon API Gateway",
+      "description": "Managed REST, HTTP and WebSocket APIs"
+    },
+    "amazon-application-recovery-controller": {
+      "name": "Amazon Application Recovery Controller",
+      "label": "Application Recovery\nController",
+      "description": "Readiness checks and routing controls for failover"
+    },
+    "amazon-cloudfront": {
+      "name": "Amazon CloudFront",
+      "description": "Content delivery network (CDN)"
+    },
+    "amazon-route-53": {
+      "name": "Amazon Route 53",
+      "description": "DNS and domain registration"
+    },
+    "amazon-virtual-private-cloud": {
+      "name": "Amazon Virtual Private Cloud (VPC)",
+      "label": "Amazon VPC",
+      "description": "Isolated virtual networks"
+    },
+    "amazon-vpc-lattice": {
+      "name": "Amazon VPC Lattice",
+      "description": "Service-to-service networking across VPCs and accounts"
+    },
+    "aws-app-mesh": {
+      "name": "AWS App Mesh",
+      "description": "Service mesh for microservices"
+    },
+    "aws-client-vpn": {
+      "name": "AWS Client VPN",
+      "description": "Remote-access VPN for users"
+    },
+    "aws-cloud-map": {
+      "name": "AWS Cloud Map",
+      "description": "Service discovery"
+    },
+    "aws-cloud-wan": {
+      "name": "AWS Cloud WAN",
+      "description": "Global wide area network management"
+    },
+    "aws-direct-connect": {
+      "name": "AWS Direct Connect",
+      "description": "Dedicated network connection to AWS"
+    },
+    "aws-global-accelerator": {
+      "name": "AWS Global Accelerator",
+      "description": "Static anycast IPs routing to the nearest region"
+    },
+    "aws-private-5g": {
+      "name": "AWS Private 5G",
+      "description": "Private mobile networks on premises"
+    },
+    "aws-privatelink": {
+      "name": "AWS PrivateLink",
+      "description": "Private connectivity to services without the public internet"
+    },
+    "aws-site-to-site-vpn": {
+      "name": "AWS Site-to-Site VPN",
+      "description": "IPsec VPN between your network and AWS"
+    },
+    "aws-transit-gateway": {
+      "name": "AWS Transit Gateway",
+      "description": "Hub connecting VPCs and on-premises networks"
+    },
+    "aws-verified-access": {
+      "name": "AWS Verified Access",
+      "description": "VPN-less access to corporate applications"
+    },
+    "elastic-load-balancing": {
+      "name": "Elastic Load Balancing (ELB)",
+      "description": "Distributes traffic (ALB, NLB, GWLB)"
+    },
+    "amazon-braket": {
+      "name": "Amazon Braket",
+      "description": "Quantum computing service"
+    },
+    "aws-ground-station": {
+      "name": "AWS Ground Station",
+      "description": "Satellite communications as a service"
+    },
+    "amazon-cloud-directory": {
+      "name": "Amazon Cloud Directory",
+      "description": "Hierarchical directory store"
+    },
+    "amazon-cognito": {
+      "name": "Amazon Cognito",
+      "description": "User sign-up, sign-in and identity"
+    },
+    "amazon-detective": {
+      "name": "Amazon Detective",
+      "description": "Investigates security findings"
+    },
+    "amazon-guardduty": {
+      "name": "Amazon GuardDuty",
+      "description": "Threat detection"
+    },
+    "amazon-inspector": {
+      "name": "Amazon Inspector",
+      "description": "Vulnerability scanning for EC2, ECR and Lambda"
+    },
+    "amazon-macie": {
+      "name": "Amazon Macie",
+      "description": "Discovers sensitive data in S3"
+    },
+    "amazon-security-lake": {
+      "name": "Amazon Security Lake",
+      "description": "Centralizes security data in a data lake"
+    },
+    "amazon-verified-permissions": {
+      "name": "Amazon Verified Permissions",
+      "description": "Fine-grained authorization (Cedar policies)"
+    },
+    "aws-artifact": {
+      "name": "AWS Artifact",
+      "description": "Compliance reports and agreements"
+    },
+    "aws-audit-manager": {
+      "name": "AWS Audit Manager",
+      "description": "Continuous audit evidence collection"
+    },
+    "aws-certificate-manager": {
+      "name": "AWS Certificate Manager (ACM)",
+      "description": "Provisions and renews TLS certificates"
+    },
+    "aws-cloudhsm": {
+      "name": "AWS CloudHSM",
+      "description": "Dedicated hardware security modules"
+    },
+    "aws-directory-service": {
+      "name": "AWS Directory Service",
+      "description": "Managed Microsoft Active Directory"
+    },
+    "aws-firewall-manager": {
+      "name": "AWS Firewall Manager",
+      "description": "Central management of firewall rules"
+    },
+    "aws-iam-identity-center": {
+      "name": "AWS IAM Identity Center",
+      "description": "Single sign-on across accounts and apps"
+    },
+    "aws-identity-and-access-management": {
+      "name": "AWS Identity and Access Management (IAM)",
+      "label": "AWS IAM",
+      "description": "Users, roles and permissions"
+    },
+    "aws-key-management-service": {
+      "name": "AWS Key Management Service (KMS)",
+      "label": "AWS KMS",
+      "description": "Encryption key management"
+    },
+    "aws-network-firewall": {
+      "name": "AWS Network Firewall",
+      "description": "Managed network firewall for VPCs"
+    },
+    "aws-payment-cryptography": {
+      "name": "AWS Payment Cryptography",
+      "description": "Payment HSM functions as a service"
+    },
+    "aws-private-certificate-authority": {
+      "name": "AWS Private Certificate Authority",
+      "description": "Private CA for internal certificates"
+    },
+    "aws-resource-access-manager": {
+      "name": "AWS Resource Access Manager (RAM)",
+      "label": "AWS RAM",
+      "description": "Shares resources across accounts"
+    },
+    "aws-secrets-manager": {
+      "name": "AWS Secrets Manager",
+      "description": "Stores and rotates secrets"
+    },
+    "aws-security-hub": {
+      "name": "AWS Security Hub",
+      "description": "Aggregates security findings"
+    },
+    "aws-security-incident-response": {
+      "name": "AWS Security Incident Response",
+      "description": "Security incident preparation and response"
+    },
+    "aws-shield": {
+      "name": "AWS Shield",
+      "description": "DDoS protection"
+    },
+    "aws-signer": {
+      "name": "AWS Signer",
+      "description": "Code signing for Lambda and containers"
+    },
+    "aws-waf": {
+      "name": "AWS WAF",
+      "description": "Web application firewall"
+    },
+    "amazon-efs": {
+      "name": "Amazon EFS",
+      "description": "Elastic shared file storage (NFS)"
+    },
+    "amazon-elastic-block-store": {
+      "name": "Amazon Elastic Block Store (EBS)",
+      "label": "Amazon EBS",
+      "description": "Block storage volumes for EC2"
+    },
+    "amazon-file-cache": {
+      "name": "Amazon File Cache",
+      "description": "High-speed cache for on-premises and S3 file data"
+    },
+    "amazon-fsx": {
+      "name": "Amazon FSx",
+      "description": "Managed file systems"
+    },
+    "amazon-fsx-for-lustre": {
+      "name": "Amazon FSx for Lustre",
+      "description": "High-performance file system for HPC and ML"
+    },
+    "amazon-fsx-for-netapp-ontap": {
+      "name": "Amazon FSx for NetApp ONTAP",
+      "description": "Managed NetApp ONTAP file storage"
+    },
+    "amazon-fsx-for-openzfs": {
+      "name": "Amazon FSx for OpenZFS",
+      "description": "Managed OpenZFS file storage"
+    },
+    "amazon-fsx-for-wfs": {
+      "name": "Amazon FSx for Windows File Server",
+      "label": "Amazon FSx for\nWindows File Server",
+      "description": "Managed Windows (SMB) file shares"
+    },
+    "amazon-s3-on-outposts": {
+      "name": "Amazon S3 on Outposts",
+      "description": "S3 object storage on Outposts"
+    },
+    "amazon-simple-storage-service": {
+      "name": "Amazon Simple Storage Service (S3)",
+      "label": "Amazon S3",
+      "description": "Object storage"
+    },
+    "amazon-simple-storage-service-glacier": {
+      "name": "Amazon S3 Glacier",
+      "description": "Low-cost archive storage"
+    },
+    "aws-backup": {
+      "name": "AWS Backup",
+      "description": "Centralized backup across AWS services"
+    },
+    "aws-elastic-disaster-recovery": {
+      "name": "AWS Elastic Disaster Recovery",
+      "description": "Replicates servers for fast recovery"
+    },
+    "aws-snowball": {
+      "name": "AWS Snowball",
+      "description": "Physical devices for petabyte-scale data transfer"
+    },
+    "aws-snowball-edge": {
+      "name": "AWS Snowball Edge",
+      "description": "Rugged device with storage and compute at the edge"
+    },
+    "aws-storage-gateway": {
+      "name": "AWS Storage Gateway",
+      "description": "Hybrid storage bridging on-premises and AWS"
+    }
+  },
+  "groups": {
+    "aws-cloud-logo": {
+      "name": "AWS Cloud",
+      "description": "Boundary of everything running in AWS"
+    },
+    "aws-cloud": {
+      "name": "AWS Cloud (alt)",
+      "label": "AWS Cloud",
+      "description": "AWS Cloud boundary, cloud-icon variant"
+    },
+    "region": {
+      "name": "Region",
+      "description": "An AWS Region",
+      "dashed": true
+    },
+    "availability-zone": {
+      "name": "Availability Zone",
+      "description": "An Availability Zone inside a Region",
+      "color": "#00A4A6",
+      "dashed": true
+    },
+    "virtual-private-cloud-vpc": {
+      "name": "VPC",
+      "description": "Virtual Private Cloud boundary"
+    },
+    "public-subnet": {
+      "name": "Public subnet",
+      "description": "Subnet with a route to the internet"
+    },
+    "private-subnet": {
+      "name": "Private subnet",
+      "description": "Subnet without direct internet access"
+    },
+    "auto-scaling-group": {
+      "name": "Auto Scaling group",
+      "description": "Group of instances scaled automatically",
+      "dashed": true
+    },
+    "aws-account": {
+      "name": "AWS Account",
+      "description": "Boundary of an AWS account"
+    },
+    "corporate-data-center": {
+      "name": "Corporate data center",
+      "description": "On-premises data center"
+    },
+    "ec2-instance-contents": {
+      "name": "EC2 instance contents",
+      "description": "Software running inside an EC2 instance"
+    },
+    "server-contents": {
+      "name": "Server contents",
+      "description": "Software running inside a generic server"
+    },
+    "spot-fleet": {
+      "name": "Spot Fleet",
+      "description": "Fleet of EC2 Spot Instances"
+    },
+    "aws-iot-greengrass-deployment": {
+      "name": "AWS IoT Greengrass Deployment",
+      "description": "Components deployed to Greengrass devices"
+    },
+    "generic-group": {
+      "name": "Generic group",
+      "description": "Plain grouping box",
+      "color": "#7D8998",
+      "dashed": true
+    }
+  },
+  "general": {
+    "alert": {
+      "name": "Alert",
+      "description": "Alert or alarm notification"
+    },
+    "authenticated-user": {
+      "name": "Authenticated user",
+      "description": "A signed-in user"
+    },
+    "aws-management-console": {
+      "name": "AWS Management Console",
+      "description": "The AWS web console as an actor"
+    },
+    "camera": {
+      "name": "Camera",
+      "description": "Camera or video source"
+    },
+    "chat": {
+      "name": "Chat",
+      "description": "Chat or messaging"
+    },
+    "client": {
+      "name": "Client",
+      "description": "Client device or application"
+    },
+    "cold-storage": {
+      "name": "Cold storage",
+      "description": "Archive or infrequently accessed storage"
+    },
+    "credentials": {
+      "name": "Credentials",
+      "description": "Keys, passwords or tokens"
+    },
+    "data-stream": {
+      "name": "Data stream",
+      "description": "Continuous stream of data"
+    },
+    "data-table": {
+      "name": "Data table",
+      "description": "Table of structured data"
+    },
+    "database": {
+      "name": "Database",
+      "description": "Generic database"
+    },
+    "disk": {
+      "name": "Disk",
+      "description": "Disk or volume"
+    },
+    "document": {
+      "name": "Document",
+      "description": "A single document or file"
+    },
+    "documents": {
+      "name": "Documents",
+      "description": "Multiple documents or files"
+    },
+    "email": {
+      "name": "Email",
+      "description": "Email message"
+    },
+    "firewall": {
+      "name": "Firewall",
+      "description": "Network firewall"
+    },
+    "folder": {
+      "name": "Folder",
+      "description": "A folder"
+    },
+    "folders": {
+      "name": "Folders",
+      "description": "Multiple folders"
+    },
+    "forums": {
+      "name": "Forums",
+      "description": "Discussion forums or community"
+    },
+    "gear": {
+      "name": "Gear",
+      "description": "Settings, configuration or processing"
+    },
+    "generic-application": {
+      "name": "Generic application",
+      "description": "Generic application or service"
+    },
+    "git-repository": {
+      "name": "Git repository",
+      "description": "Source code repository"
+    },
+    "globe": {
+      "name": "Globe",
+      "description": "Global or worldwide reach"
+    },
+    "internet": {
+      "name": "Internet",
+      "description": "The public internet"
+    },
+    "internet-alt1": {
+      "name": "Internet (alt 1)",
+      "label": "Internet",
+      "description": "The public internet, alternative icon"
+    },
+    "internet-alt2": {
+      "name": "Internet (alt 2)",
+      "label": "Internet",
+      "description": "The public internet, alternative icon"
+    },
+    "json-script": {
+      "name": "JSON script",
+      "description": "JSON document or script"
+    },
+    "logs": {
+      "name": "Logs",
+      "description": "Log files"
+    },
+    "magnifying-glass": {
+      "name": "Magnifying glass",
+      "description": "Search or inspection"
+    },
+    "metrics": {
+      "name": "Metrics",
+      "description": "Metrics or charts"
+    },
+    "mobile-client": {
+      "name": "Mobile client",
+      "description": "Mobile device or app"
+    },
+    "multimedia": {
+      "name": "Multimedia",
+      "description": "Audio, video or images"
+    },
+    "office-building": {
+      "name": "Office building",
+      "description": "Company office or branch"
+    },
+    "programming-language": {
+      "name": "Programming language",
+      "description": "Code in a programming language"
+    },
+    "question": {
+      "name": "Question",
+      "description": "Question or unknown element"
+    },
+    "recover": {
+      "name": "Recover",
+      "description": "Recovery or restore"
+    },
+    "saml-token": {
+      "name": "SAML token",
+      "description": "SAML assertion or federated identity token"
+    },
+    "sdk": {
+      "name": "SDK",
+      "description": "Software development kit"
+    },
+    "server": {
+      "name": "Server",
+      "description": "Generic server"
+    },
+    "servers": {
+      "name": "Servers",
+      "description": "Multiple servers"
+    },
+    "shield": {
+      "name": "Shield",
+      "description": "Protection or security"
+    },
+    "source-code": {
+      "name": "Source code",
+      "description": "Source code"
+    },
+    "ssl-padlock": {
+      "name": "SSL padlock",
+      "description": "TLS/SSL encryption"
+    },
+    "tape-storage": {
+      "name": "Tape storage",
+      "description": "Tape backup storage"
+    },
+    "toolkit": {
+      "name": "Toolkit",
+      "description": "Tools or utilities"
+    },
+    "user": {
+      "name": "User",
+      "description": "A person using the system"
+    },
+    "users": {
+      "name": "Users",
+      "description": "A group of people"
+    }
+  },
+  "resources": {
+    "amazon-api-gateway-endpoint": {
+      "description": "API Gateway endpoint (edge-optimized, regional or private)"
+    },
+    "amazon-athena-data-source-connectors": {
+      "description": "Federated query connectors to external data sources"
+    },
+    "amazon-aurora-amazon-aurora-instance-alternate": {
+      "name": "Amazon Aurora Instance (alternate)",
+      "description": "Aurora database instance, alternate icon"
+    },
+    "amazon-aurora-amazon-rds-instance": {
+      "name": "Amazon Aurora RDS Instance",
+      "description": "RDS database instance in the Aurora style"
+    },
+    "amazon-aurora-amazon-rds-instance-aternate": {
+      "name": "Amazon Aurora RDS Instance (alternate)",
+      "description": "RDS database instance, alternate icon"
+    },
+    "amazon-aurora-trusted-language-extensions-for-postgresql": {
+      "description": "Trusted Language Extensions for PostgreSQL on Aurora"
+    },
+    "amazon-aurora-instance": {
+      "description": "Aurora database instance"
+    },
+    "amazon-aurora-piops-instance": {
+      "name": "Amazon Aurora PIOPS Instance",
+      "description": "Database instance with provisioned IOPS storage"
+    },
+    "amazon-braket-chandelier": {
+      "description": "Dilution refrigerator housing a quantum processor"
+    },
+    "amazon-braket-chip": {
+      "description": "Quantum processor chip"
+    },
+    "amazon-braket-embedded-simulator": {
+      "description": "Simulator embedded in the hybrid job container"
+    },
+    "amazon-braket-managed-simulator": {
+      "description": "On-demand managed quantum circuit simulator"
+    },
+    "amazon-braket-noise-simulator": {
+      "description": "Density-matrix simulator modelling noise"
+    },
+    "amazon-braket-qpu": {
+      "name": "Amazon Braket QPU",
+      "description": "Quantum processing unit from a hardware provider"
+    },
+    "amazon-braket-simulator": {
+      "description": "Quantum circuit simulator"
+    },
+    "amazon-braket-state-vector": {
+      "description": "State-vector simulator"
+    },
+    "amazon-braket-tensor-network": {
+      "description": "Tensor-network simulator"
+    },
+    "amazon-cloudfront-download-distribution": {
+      "description": "Distribution serving static and dynamic content over HTTP(S)"
+    },
+    "amazon-cloudfront-edge-location": {
+      "description": "Point of presence caching content close to viewers"
+    },
+    "amazon-cloudfront-functions": {
+      "description": "Lightweight JavaScript functions at the edge"
+    },
+    "amazon-cloudfront-streaming-distribution": {
+      "description": "Distribution for streaming media"
+    },
+    "amazon-cloudwatch-alarm": {
+      "description": "Alarm on a metric threshold"
+    },
+    "amazon-cloudwatch-cross-account-observability": {
+      "description": "Monitoring across multiple AWS accounts"
+    },
+    "amazon-cloudwatch-evidently": {
+      "description": "Feature experiments and A/B tests"
+    },
+    "amazon-cloudwatch-event-event-based": {
+      "description": "Event triggered by a change in resources"
+    },
+    "amazon-cloudwatch-event-time-based": {
+      "description": "Scheduled (cron) event"
+    },
+    "amazon-cloudwatch-logs": {
+      "description": "Log groups and streams"
+    },
+    "amazon-cloudwatch-metrics-insights": {
+      "description": "SQL-like queries over metrics"
+    },
+    "amazon-cloudwatch-rule": {
+      "description": "Rule matching events to targets"
+    },
+    "amazon-cloudwatch-rum": {
+      "name": "Amazon CloudWatch RUM",
+      "description": "Real user monitoring of web applications"
+    },
+    "amazon-cloudwatch-synthetics": {
+      "description": "Canaries that probe endpoints on a schedule"
+    },
+    "amazon-dynamodb-amazon-dynamodb-accelerator": {
+      "name": "Amazon DynamoDB Accelerator (DAX)",
+      "label": "DynamoDB\nAccelerator (DAX)",
+      "description": "In-memory cache for DynamoDB"
+    },
+    "amazon-dynamodb-global-secondary-index": {
+      "description": "Index with a different partition/sort key"
+    },
+    "amazon-dynamodb-standard-access-table-class": {
+      "description": "Table class for frequently accessed data"
+    },
+    "amazon-dynamodb-standard-infrequent-access-table-class": {
+      "description": "Lower-cost table class for rarely accessed data"
+    },
+    "amazon-dynamodb-stream": {
+      "description": "Ordered change log of table items"
+    },
+    "amazon-ec2-ami": {
+      "name": "Amazon EC2 AMI",
+      "description": "Amazon Machine Image used to launch instances"
+    },
+    "amazon-ec2-aws-microservice-extractor-for-net": {
+      "name": "AWS Microservice Extractor for .NET",
+      "description": "Refactors monolithic .NET apps into microservices"
+    },
+    "amazon-ec2-db-instance": {
+      "description": "Database running on an EC2 instance"
+    },
+    "amazon-ec2-elastic-ip-address": {
+      "description": "Static public IPv4 address"
+    },
+    "amazon-ec2-instance-with-cloudwatch": {
+      "description": "Instance monitored by CloudWatch"
+    },
+    "amazon-ec2-rescue": {
+      "description": "EC2Rescue troubleshooting tool"
+    },
+    "amazon-ec2-spot-instance": {
+      "description": "Spare capacity instance at a discount"
+    },
+    "amazon-elastic-block-store-amazon-data-lifecycle-manager": {
+      "name": "Amazon Data Lifecycle Manager",
+      "description": "Automates EBS snapshot and AMI lifecycle"
+    },
+    "amazon-elastic-block-store-volume-gp3": {
+      "description": "General purpose SSD volume (gp3)"
+    },
+    "amazon-elastic-container-service-copiiot-cli": {
+      "name": "AWS Copilot CLI",
+      "description": "CLI to build and deploy containerized apps on ECS"
+    },
+    "amazon-elastic-container-service-ecs-service-connect": {
+      "description": "Service-to-service networking for ECS"
+    },
+    "amazon-elastic-container-service-task": {
+      "description": "Running instantiation of a task definition"
+    },
+    "amazon-elastic-file-system-efs-intelligent-tiering": {
+      "description": "Automatic tiering between storage classes"
+    },
+    "amazon-elastic-file-system-efs-one-zone": {
+      "description": "File system stored in a single Availability Zone"
+    },
+    "amazon-elastic-file-system-efs-one-zone-infrequent-access": {
+      "description": "One Zone storage class for rarely accessed files"
+    },
+    "amazon-elastic-file-system-efs-standard-infrequent-access": {
+      "description": "Standard storage class for rarely accessed files"
+    },
+    "amazon-elastic-file-system-elastic-throughput": {
+      "description": "Throughput mode that scales automatically"
+    },
+    "amazon-elastic-kubernetes-service-eks-on-outposts": {
+      "description": "EKS clusters running on AWS Outposts"
+    },
+    "amazon-elasticache-cache-node": {
+      "description": "Node of a cache cluster"
+    },
+    "amazon-emr-emr-engine": {
+      "description": "Processing engine (Spark, Hive, Presto...)"
+    },
+    "amazon-emr-hdfs-cluster": {
+      "description": "Cluster storing data in HDFS"
+    },
+    "amazon-eventbridge-pipes": {
+      "description": "Point-to-point integrations with filtering and enrichment"
+    },
+    "amazon-eventbridge-saas-partner-event": {
+      "name": "Amazon EventBridge SaaS Partner Event",
+      "description": "Event from a SaaS partner event source"
+    },
+    "amazon-eventbridge-scheduler": {
+      "description": "Serverless scheduler for tasks"
+    },
+    "amazon-eventbridge-schema-registry": {
+      "description": "Registry of event schemas"
+    },
+    "amazon-file-cache-hybrid-nfs-linked-datasets": {
+      "description": "Cache linked to hybrid NFS datasets"
+    },
+    "amazon-file-cache-on-premises-nfs-linked-datasets": {
+      "description": "Cache linked to on-premises NFS datasets"
+    },
+    "amazon-file-cache-s3-linked-datasets": {
+      "description": "Cache linked to S3 datasets"
+    },
+    "amazon-location-service-geofence": {
+      "description": "Virtual boundary that triggers events"
+    },
+    "amazon-msk-amazon-msk-connect": {
+      "name": "Amazon MSK Connect",
+      "description": "Managed Kafka Connect connectors"
+    },
+    "amazon-opensearch-service-cluster-administrator-node": {
+      "description": "Dedicated master node"
+    },
+    "amazon-opensearch-service-ultrawarm-node": {
+      "description": "Warm tier node for less frequently accessed data"
+    },
+    "amazon-opensearch-service-opensearch-ingestion": {
+      "description": "Serverless data ingestion pipelines"
+    },
+    "amazon-quicksight-paginated-reports": {
+      "description": "Multi-page formatted reports"
+    },
+    "amazon-rds-blue-green-deployments": {
+      "description": "Staging environment for safe database updates"
+    },
+    "amazon-rds-multi-az": {
+      "name": "Amazon RDS Multi-AZ",
+      "description": "Standby replica in another Availability Zone"
+    },
+    "amazon-rds-multi-az-db-cluster": {
+      "name": "Amazon RDS Multi-AZ DB Cluster",
+      "description": "Cluster with two readable standby instances"
+    },
+    "amazon-rds-optimized-writes": {
+      "description": "Higher write throughput without doubling writes"
+    },
+    "amazon-rds-proxy-instance": {
+      "description": "Connection pooling proxy for RDS"
+    },
+    "amazon-rds-proxy-instance-alternate": {
+      "description": "RDS Proxy, alternate icon"
+    },
+    "amazon-redshift-auto-copy": {
+      "description": "Automatic ingestion from S3"
+    },
+    "amazon-redshift-dense-compute-node": {
+      "description": "Compute-optimized node type"
+    },
+    "amazon-redshift-dense-storage-node": {
+      "description": "Storage-optimized node type"
+    },
+    "amazon-redshift-ra3": {
+      "name": "Amazon Redshift RA3",
+      "description": "Node type with managed storage"
+    },
+    "amazon-redshift-ml": {
+      "name": "Amazon Redshift ML",
+      "description": "Trains and runs ML models with SQL"
+    },
+    "amazon-redshift-query-editor-v2-0": {
+      "name": "Amazon Redshift Query Editor v2",
+      "description": "Web-based SQL editor"
+    },
+    "amazon-redshift-streaming-ingestion": {
+      "description": "Ingests streaming data from Kinesis and MSK"
+    },
+    "amazon-route-53-readiness-checks": {
+      "description": "Checks recovery readiness across resources"
+    },
+    "amazon-route-53-resolver": {
+      "description": "DNS resolution inside a VPC"
+    },
+    "amazon-route-53-resolver-dns-firewall": {
+      "description": "Filters outbound DNS queries"
+    },
+    "amazon-route-53-routing-controls": {
+      "description": "Switches traffic between replicas during failover"
+    },
+    "amazon-sagemaker-ai-canvas": {
+      "description": "No-code ML model building"
+    },
+    "amazon-sagemaker-ai-shadow-testing": {
+      "description": "Compares a new model against production traffic"
+    },
+    "amazon-simple-storage-service-directory-bucket": {
+      "description": "Bucket type for S3 Express One Zone"
+    },
+    "amazon-simple-storage-service-general-access-points": {
+      "description": "Named network endpoints for bucket access"
+    },
+    "amazon-simple-storage-service-s3-batch-operations": {
+      "description": "Bulk operations across billions of objects"
+    },
+    "amazon-simple-storage-service-s3-express-one-zone": {
+      "description": "Single-digit millisecond storage class in one AZ"
+    },
+    "amazon-simple-storage-service-s3-glacier-deep-archive": {
+      "description": "Lowest-cost archive class (hours to retrieve)"
+    },
+    "amazon-simple-storage-service-s3-glacier-flexible-retrieval": {
+      "description": "Archive class with minutes-to-hours retrieval"
+    },
+    "amazon-simple-storage-service-s3-glacier-instant-retrieval": {
+      "description": "Archive class with millisecond retrieval"
+    },
+    "amazon-simple-storage-service-s3-intelligent-tiering": {
+      "description": "Automatic cost optimization across access tiers"
+    },
+    "amazon-simple-storage-service-s3-multi-region-access-points": {
+      "description": "Global endpoint routing to buckets in several regions"
+    },
+    "amazon-simple-storage-service-s3-object-lambda": {
+      "description": "Transforms objects with Lambda on retrieval"
+    },
+    "amazon-simple-storage-service-s3-object-lambda-access-points": {
+      "description": "Access points backed by Object Lambda"
+    },
+    "amazon-simple-storage-service-s3-object-lock": {
+      "description": "Write-once-read-many object retention"
+    },
+    "amazon-simple-storage-service-s3-one-zone-ia": {
+      "name": "Amazon S3 One Zone-IA",
+      "description": "Infrequent access class in a single AZ"
+    },
+    "amazon-simple-storage-service-s3-replication": {
+      "description": "Replicates objects across buckets or regions"
+    },
+    "amazon-simple-storage-service-s3-replication-time-control": {
+      "description": "Replication with a predictable SLA"
+    },
+    "amazon-simple-storage-service-s3-select": {
+      "description": "Retrieves a subset of an object with SQL"
+    },
+    "amazon-simple-storage-service-s3-standard": {
+      "description": "Default storage class"
+    },
+    "amazon-simple-storage-service-s3-standard-ia": {
+      "name": "Amazon S3 Standard-IA",
+      "description": "Infrequent access storage class"
+    },
+    "amazon-simple-storage-service-s3-storage-lens": {
+      "description": "Organization-wide storage analytics"
+    },
+    "amazon-simple-storage-service-s3-tables": {
+      "description": "Managed Apache Iceberg tables"
+    },
+    "amazon-simple-storage-service-s3-vectors": {
+      "description": "Vector storage and similarity queries"
+    },
+    "amazon-simple-storage-service-vpc-access-points": {
+      "description": "Access points restricted to a VPC"
+    },
+    "amazon-textract-analyze-lending": {
+      "description": "Extracts data from mortgage documents"
+    },
+    "amazon-vpc-carrier-gateway": {
+      "description": "Gateway for Wavelength Zone subnets"
+    },
+    "amazon-vpc-customer-gateway": {
+      "description": "Your side of a Site-to-Site VPN"
+    },
+    "amazon-vpc-elastic-network-adapter": {
+      "description": "Enhanced networking interface (ENA)"
+    },
+    "amazon-vpc-elastic-network-interface": {
+      "description": "Virtual network card (ENI)"
+    },
+    "amazon-vpc-endpoints": {
+      "description": "Private connections to AWS services"
+    },
+    "amazon-vpc-flow-logs": {
+      "description": "Captures IP traffic metadata"
+    },
+    "amazon-vpc-internet-gateway": {
+      "description": "Gateway between a VPC and the internet"
+    },
+    "amazon-vpc-nat-gateway": {
+      "name": "Amazon VPC NAT Gateway",
+      "description": "Outbound internet access for private subnets"
+    },
+    "amazon-vpc-network-access-analyzer": {
+      "description": "Identifies unintended network access"
+    },
+    "amazon-vpc-network-access-control-list": {
+      "description": "Stateless subnet-level firewall rules (NACL)"
+    },
+    "amazon-vpc-peering-connection": {
+      "description": "Private routing between two VPCs"
+    },
+    "amazon-vpc-reachability-analyzer": {
+      "description": "Analyzes network paths between resources"
+    },
+    "amazon-vpc-router": {
+      "description": "Implicit router applying route tables"
+    },
+    "amazon-vpc-traffic-mirroring": {
+      "description": "Copies network traffic for inspection"
+    },
+    "amazon-vpc-virtual-private-cloud-vpc": {
+      "name": "Amazon VPC",
+      "label": "VPC",
+      "description": "Virtual Private Cloud resource icon"
+    },
+    "amazon-vpc-vpn-connection": {
+      "name": "Amazon VPC VPN Connection",
+      "description": "Site-to-Site VPN connection"
+    },
+    "amazon-vpc-vpn-gateway": {
+      "name": "Amazon VPC VPN Gateway",
+      "description": "AWS side of a Site-to-Site VPN"
+    },
+    "amazon-workspaces-family-amazon-workspaces-core": {
+      "name": "Amazon WorkSpaces Core",
+      "label": "WorkSpaces Core",
+      "description": "Managed virtual desktop infrastructure for partners"
+    },
+    "amazon-workspaces-family-amazon-workspaces-secure-browser": {
+      "name": "Amazon WorkSpaces Secure Browser",
+      "label": "WorkSpaces\nSecure Browser",
+      "description": "Isolated browser access to internal websites"
+    },
+    "aws-app-mesh-virtual-gateway": {
+      "description": "Entry point for traffic from outside the mesh"
+    },
+    "aws-app-mesh-virtual-node": {
+      "description": "Logical pointer to a service task group"
+    },
+    "aws-app-mesh-virtual-router": {
+      "description": "Routes traffic between virtual nodes"
+    },
+    "aws-app-mesh-virtual-service": {
+      "description": "Abstraction of a real service in the mesh"
+    },
+    "aws-application-discovery-service-aws-agentless-collector": {
+      "name": "AWS Agentless Collector",
+      "description": "VMware appliance collecting inventory without agents"
+    },
+    "aws-application-discovery-service-aws-discovery-agent": {
+      "name": "AWS Discovery Agent",
+      "description": "Agent collecting server data for migration"
+    },
+    "aws-application-discovery-service-migration-evaluator-collector": {
+      "name": "Migration Evaluator Collector",
+      "description": "Collects usage data for a migration business case"
+    },
+    "aws-backup-audit-manager": {
+      "description": "Audits backup activity against policies"
+    },
+    "aws-backup-legal-hold": {
+      "description": "Prevents deletion of recovery points"
+    },
+    "aws-backup-recovery-point-objective": {
+      "name": "AWS Backup Recovery Point Objective (RPO)",
+      "label": "Backup RPO",
+      "description": "Maximum acceptable data loss window"
+    },
+    "aws-backup-recovery-time-objective": {
+      "name": "AWS Backup Recovery Time Objective (RTO)",
+      "label": "Backup RTO",
+      "description": "Maximum acceptable recovery time"
+    },
+    "aws-backup-vault-lock": {
+      "description": "Immutable, WORM-protected backup vault"
+    },
+    "aws-backup-backup-vault": {
+      "description": "Container storing recovery points"
+    },
+    "aws-backup-backup-plan": {
+      "description": "Schedule and retention rules for backups"
+    },
+    "aws-backup-gateway": {
+      "description": "Connects on-premises VMware to AWS Backup"
+    },
+    "aws-cloud-digital-interface": {
+      "name": "AWS Cloud Digital Interface (CDI)",
+      "description": "Uncompressed live video transport in the cloud"
+    },
+    "aws-cloud-map-namespace": {
+      "description": "Logical group of services for discovery"
+    },
+    "aws-cloud-wan-core-network-edge": {
+      "description": "Regional connection point of the core network"
+    },
+    "aws-cloud-wan-segment-network": {
+      "description": "Isolated routing domain in Cloud WAN"
+    },
+    "aws-cloud-wan-transit-gateway-route-table-attachment": {
+      "label": "Cloud WAN TGW Route\nTable Attachment",
+      "description": "Peering attachment to a Transit Gateway route table"
+    },
+    "aws-cloudformation-change-set": {
+      "description": "Preview of stack changes before applying"
+    },
+    "aws-cloudformation-stack": {
+      "description": "Collection of resources managed as a unit"
+    },
+    "aws-cloudformation-template": {
+      "description": "JSON/YAML infrastructure definition"
+    },
+    "aws-cloudtrail-cloudtrail-lake": {
+      "description": "Managed data lake for audit events"
+    },
+    "aws-data-exchange-for-apis": {
+      "description": "Third-party API subscriptions through Data Exchange"
+    },
+    "aws-database-migration-service-database-migration-workflow-or-job": {
+      "name": "AWS DMS Migration Task",
+      "label": "DMS Migration Task",
+      "description": "Replication task moving data between databases"
+    },
+    "aws-datasync-agent": {
+      "description": "VM agent reading on-premises storage"
+    },
+    "aws-datasync-discovery": {
+      "description": "Discovers on-premises storage for migration"
+    },
+    "aws-direct-connect-gateway": {
+      "description": "Connects Direct Connect to VPCs in any region"
+    },
+    "aws-directory-service-ad-connector": {
+      "name": "AWS Directory Service AD Connector",
+      "description": "Proxy to an on-premises Active Directory"
+    },
+    "aws-directory-service-aws-managed-microsoft-ad": {
+      "name": "AWS Managed Microsoft AD",
+      "description": "Managed Active Directory in the cloud"
+    },
+    "aws-directory-service-simple-ad": {
+      "name": "AWS Directory Service Simple AD",
+      "description": "Samba-based lightweight directory"
+    },
+    "aws-glue-aws-glue-for-ray": {
+      "name": "AWS Glue for Ray",
+      "description": "Python data processing with Ray"
+    },
+    "aws-glue-crawler": {
+      "description": "Scans data stores to populate the Data Catalog"
+    },
+    "aws-glue-data-catalog": {
+      "description": "Central metadata repository"
+    },
+    "aws-glue-data-quality": {
+      "description": "Rules that measure and monitor data quality"
+    },
+    "aws-identity-access-management-add-on": {
+      "description": "IAM add-on component"
+    },
+    "aws-identity-access-management-aws-sts": {
+      "name": "AWS STS",
+      "description": "Security Token Service issuing temporary credentials"
+    },
+    "aws-identity-access-management-aws-sts-alternate": {
+      "name": "AWS STS (alternate)",
+      "description": "Security Token Service, alternate icon"
+    },
+    "aws-identity-access-management-data-encryption-key": {
+      "description": "Key used to encrypt data"
+    },
+    "aws-identity-access-management-iam-access-analyzer": {
+      "name": "AWS IAM Access Analyzer",
+      "description": "Finds resources shared with external entities"
+    },
+    "aws-identity-access-management-iam-roles-anywhere": {
+      "name": "AWS IAM Roles Anywhere",
+      "description": "Temporary credentials for workloads outside AWS"
+    },
+    "aws-identity-access-management-long-term-security-credential": {
+      "description": "Access key pair"
+    },
+    "aws-identity-access-management-mfa-token": {
+      "name": "AWS IAM MFA Token",
+      "description": "Multi-factor authentication device"
+    },
+    "aws-identity-access-management-temporary-security-credential": {
+      "description": "Short-lived credentials from STS"
+    },
+    "aws-iot-action": {
+      "description": "Action taken when a rule matches"
+    },
+    "aws-iot-actuator": {
+      "description": "Device component that acts on the physical world"
+    },
+    "aws-iot-alexa-enabled-device": {
+      "description": "Device with Alexa built in"
+    },
+    "aws-iot-alexa-skill": {
+      "description": "Voice application for Alexa"
+    },
+    "aws-iot-alexa-voice-service": {
+      "description": "Cloud service behind Alexa devices"
+    },
+    "aws-iot-certificate": {
+      "description": "X.509 certificate identifying a device"
+    },
+    "aws-iot-desired-state": {
+      "description": "Requested state in a device shadow"
+    },
+    "aws-iot-device-gateway": {
+      "description": "Endpoint devices connect to"
+    },
+    "aws-iot-echo": {
+      "description": "Amazon Echo device"
+    },
+    "aws-iot-fire-tv": {
+      "description": "Amazon Fire TV device"
+    },
+    "aws-iot-fire-tv-stick": {
+      "description": "Amazon Fire TV Stick device"
+    },
+    "aws-iot-http-protocol": {
+      "name": "AWS IoT HTTP Protocol",
+      "description": "Devices publishing over HTTP"
+    },
+    "aws-iot-http2-protocol": {
+      "name": "AWS IoT HTTP/2 Protocol",
+      "description": "Devices communicating over HTTP/2"
+    },
+    "aws-iot-lambda-function": {
+      "description": "Lambda function invoked by IoT rules"
+    },
+    "aws-iot-lorawan-protocol": {
+      "name": "AWS IoT LoRaWAN Protocol",
+      "description": "Long-range low-power device connectivity"
+    },
+    "aws-iot-mqtt-protocol": {
+      "name": "AWS IoT MQTT Protocol",
+      "description": "Lightweight publish/subscribe messaging"
+    },
+    "aws-iot-over-air-update": {
+      "description": "Over-the-air firmware update"
+    },
+    "aws-iot-policy": {
+      "description": "Policy authorizing device operations"
+    },
+    "aws-iot-reported-state": {
+      "description": "State reported by the device in its shadow"
+    },
+    "aws-iot-shadow": {
+      "description": "Persistent virtual representation of a device"
+    },
+    "aws-iot-simulator": {
+      "description": "Simulated devices for testing"
+    },
+    "aws-iot-thing-generic": {
+      "description": "Generic connected device"
+    },
+    "aws-iot-thing-plc": {
+      "name": "AWS IoT Thing PLC",
+      "description": "Programmable logic controller"
+    },
+    "aws-iot-thing-freertos-device": {
+      "description": "Microcontroller running FreeRTOS"
+    },
+    "aws-iot-topic": {
+      "description": "MQTT topic"
+    },
+    "aws-iot-analytics-channel": {
+      "description": "Collects raw device messages"
+    },
+    "aws-iot-analytics-data-store": {
+      "description": "Stores processed device data"
+    },
+    "aws-iot-analytics-dataset": {
+      "description": "Query results from a data store"
+    },
+    "aws-iot-analytics-pipeline": {
+      "description": "Transforms messages before storage"
+    },
+    "aws-iot-core-device-advisor": {
+      "description": "Tests device software against AWS IoT"
+    },
+    "aws-iot-core-device-location": {
+      "description": "Resolves device location without GPS"
+    },
+    "aws-iot-device-defender-iot-device-jobs": {
+      "description": "Remote operations run on devices"
+    },
+    "aws-iot-device-management-fleet-hub": {
+      "description": "Web app to monitor device fleets"
+    },
+    "aws-iot-device-tester": {
+      "description": "Test automation for device qualification"
+    },
+    "aws-iot-greengrass-artifact": {
+      "description": "Binary or script shipped in a component"
+    },
+    "aws-iot-greengrass-component": {
+      "description": "Software module deployed to devices"
+    },
+    "aws-iot-greengrass-component-nucleus": {
+      "description": "Core runtime component"
+    },
+    "aws-iot-greengrass-component-private": {
+      "description": "Component owned by your account"
+    },
+    "aws-iot-greengrass-component-public": {
+      "description": "Component published by AWS"
+    },
+    "aws-iot-greengrass-connector": {
+      "description": "Prebuilt integration with services and protocols"
+    },
+    "aws-iot-greengrass-interprocess-communication": {
+      "name": "AWS IoT Greengrass Interprocess Communication (IPC)",
+      "label": "IoT Greengrass IPC",
+      "description": "IPC between local components"
+    },
+    "aws-iot-greengrass-recipe": {
+      "description": "Component definition (metadata, artifacts, lifecycle)"
+    },
+    "aws-iot-greengrass-stream-manager": {
+      "description": "Buffers and exports data streams to the cloud"
+    },
+    "aws-iot-hardware-board": {
+      "description": "Development board for IoT devices"
+    },
+    "aws-iot-rule": {
+      "description": "Rules engine rule routing messages"
+    },
+    "aws-iot-sitewise-asset": {
+      "description": "Model instance representing equipment"
+    },
+    "aws-iot-sitewise-asset-hierarchy": {
+      "description": "Parent/child relationships between assets"
+    },
+    "aws-iot-sitewise-asset-model": {
+      "description": "Template defining asset properties"
+    },
+    "aws-iot-sitewise-asset-properties": {
+      "description": "Attributes, measurements and metrics of an asset"
+    },
+    "aws-iot-sitewise-data-streams": {
+      "description": "Time-series streams ingested into SiteWise"
+    },
+    "aws-key-management-service-external-key-store": {
+      "description": "Keys kept in an external key manager (XKS)"
+    },
+    "aws-license-manager-license-blending": {
+      "description": "Mixes license types across resources"
+    },
+    "aws-mainframe-modernization-analyzer": {
+      "description": "Analyzes mainframe application code"
+    },
+    "aws-mainframe-modernization-compiler": {
+      "description": "Compiles COBOL/PL1 for the target runtime"
+    },
+    "aws-mainframe-modernization-converter": {
+      "description": "Converts mainframe artifacts for migration"
+    },
+    "aws-mainframe-modernization-developer": {
+      "description": "Developer tooling for modernized apps"
+    },
+    "aws-mainframe-modernization-runtime": {
+      "description": "Managed runtime for migrated applications"
+    },
+    "aws-migration-hub-refactor-spaces-applications": {
+      "description": "Application being incrementally refactored"
+    },
+    "aws-migration-hub-refactor-spaces-environments": {
+      "description": "Multi-account network for refactoring"
+    },
+    "aws-migration-hub-refactor-spaces-services": {
+      "description": "Service routed to by Refactor Spaces"
+    },
+    "aws-network-firewall-endpoints": {
+      "description": "Firewall endpoints inspecting subnet traffic"
+    },
+    "aws-organizations-management-account": {
+      "description": "Root account that owns the organization"
+    },
+    "aws-organizations-organizational-unit": {
+      "description": "Group of accounts inside an organization"
+    },
+    "aws-security-hub-finding": {
+      "description": "Security finding record"
+    },
+    "aws-shield-aws-shield-advanced": {
+      "name": "AWS Shield Advanced",
+      "description": "Enhanced DDoS protection tier"
+    },
+    "aws-snowball-snowball-import-export": {
+      "description": "Data import/export through Snowball devices"
+    },
+    "aws-storage-gateway-cached-volume": {
+      "description": "Volume with primary data in S3 and a local cache"
+    },
+    "aws-storage-gateway-noncached-volume": {
+      "description": "Volume stored locally and backed up to S3"
+    },
+    "aws-storage-gateway-virtual-tape-library": {
+      "description": "Virtual tapes stored in S3"
+    },
+    "aws-systems-manager-automation": {
+      "description": "Runbooks automating operational tasks"
+    },
+    "aws-systems-manager-change-calendar": {
+      "description": "Time windows when changes are allowed"
+    },
+    "aws-systems-manager-distributor": {
+      "description": "Packages and installs software on nodes"
+    },
+    "aws-systems-manager-documents": {
+      "description": "Definitions of actions to run (SSM documents)"
+    },
+    "aws-systems-manager-incident-manager": {
+      "description": "Incident response and on-call management"
+    },
+    "aws-systems-manager-opscenter": {
+      "description": "Central view of operational issues"
+    },
+    "aws-systems-manager-parameter-store": {
+      "description": "Hierarchical storage for configuration and secrets"
+    },
+    "aws-systems-manager-run-command": {
+      "description": "Runs commands on managed nodes"
+    },
+    "aws-systems-manager-session-manager": {
+      "description": "Shell access without open ports or SSH keys"
+    },
+    "aws-systems-manager-state-manager": {
+      "description": "Keeps nodes in a defined state"
+    },
+    "aws-transfer-family-aws-as2": {
+      "name": "AWS Transfer Family AS2",
+      "description": "AS2 protocol endpoint"
+    },
+    "aws-transfer-family-aws-ftp": {
+      "name": "AWS Transfer Family FTP",
+      "description": "FTP protocol endpoint"
+    },
+    "aws-transfer-family-aws-ftps": {
+      "name": "AWS Transfer Family FTPS",
+      "description": "FTPS protocol endpoint"
+    },
+    "aws-transfer-family-aws-sftp": {
+      "name": "AWS Transfer Family SFTP",
+      "description": "SFTP protocol endpoint"
+    },
+    "aws-transit-gateway-attachment": {
+      "description": "VPC, VPN or peering attachment to a Transit Gateway"
+    },
+    "aws-trusted-advisor-checklist": {
+      "description": "Best-practice check results"
+    },
+    "aws-waf-bad-bot": {
+      "name": "AWS WAF Bad Bot",
+      "description": "Malicious automated traffic"
+    },
+    "aws-waf-bot": {
+      "name": "AWS WAF Bot",
+      "description": "Automated client traffic"
+    },
+    "aws-waf-bot-control": {
+      "name": "AWS WAF Bot Control",
+      "description": "Managed rules that detect and block bots"
+    },
+    "aws-waf-labels": {
+      "name": "AWS WAF Labels",
+      "description": "Metadata rules add to matching requests"
+    },
+    "aws-waf-managed-rule": {
+      "name": "AWS WAF Managed Rule",
+      "description": "Rule group maintained by AWS or a vendor"
+    },
+    "aws-waf-rule": {
+      "name": "AWS WAF Rule",
+      "description": "Custom inspection rule"
+    },
+    "aws-waf-filtering-rule": {
+      "name": "AWS WAF Filtering Rule",
+      "description": "Rule that filters requests"
+    },
+    "aws-amplify-aws-amplify-studio": {
+      "name": "AWS Amplify Studio",
+      "description": "Visual development environment for Amplify apps"
+    },
+    "aws-cloud9-cloud9": {
+      "name": "AWS Cloud9 Environment",
+      "description": "Cloud-based IDE environment"
+    },
+    "aws-elastic-beanstalk-application": {
+      "description": "Logical collection of environments and versions"
+    },
+    "aws-elastic-beanstalk-deployment": {
+      "description": "Application version deployed to an environment"
+    },
+    "aws-elemental-mediaconnect-mediaconnect-gateway": {
+      "description": "On-premises gateway for MediaConnect flows"
+    },
+    "aws-lambda-lambda-function": {
+      "description": "Function code executed on demand"
+    },
+    "aws-lake-formation-data-lake": {
+      "description": "Governed data lake on S3"
+    },
+    "amazon-simple-notification-service-email-notification": {
+      "description": "Email delivery from a topic"
+    },
+    "amazon-simple-notification-service-http-notification": {
+      "description": "HTTP/S delivery from a topic"
+    },
+    "amazon-simple-queue-service-message": {
+      "description": "Message stored in a queue"
+    },
+    "amazon-simple-queue-service-queue": {
+      "description": "Standard or FIFO queue"
+    },
+    "amazon-simple-storage-service-glacier-archive": {
+      "description": "Archived object in a Glacier vault"
+    },
+    "amazon-simple-storage-service-glacier-vault": {
+      "description": "Container for archives"
+    },
+    "amazon-documentdb-elastic-clusters": {
+      "description": "Sharded clusters scaling beyond a single instance"
+    },
+    "amazon-datazone-business-data-catalog": {
+      "description": "Business-friendly catalog of data assets"
+    },
+    "amazon-datazone-data-portal": {
+      "description": "Web portal to discover and share data"
+    },
+    "amazon-datazone-data-projects": {
+      "description": "Collaboration spaces for data teams"
+    },
+    "amazon-devops-guru-insights": {
+      "description": "Detected operational anomalies with recommendations"
+    },
+    "amazon-inspector-agent": {
+      "description": "Agent assessing hosts for vulnerabilities"
+    },
+    "amazon-pinpoint-journey": {
+      "description": "Multi-step customer engagement flow"
+    },
+    "amazon-rekognition-image": {
+      "description": "Image analysis (labels, faces, text)"
+    },
+    "amazon-rekognition-video": {
+      "description": "Video analysis"
+    },
+    "amazon-elastic-container-registry-image": {
+      "description": "Container image stored in a registry"
+    },
+    "amazon-elastic-container-registry-registry": {
+      "description": "Private or public image registry"
+    },
+    "amazon-ec2-auto-scaling": {
+      "description": "Auto Scaling group of instances (resource icon)"
+    },
+    "amazon-ec2-instances": {
+      "description": "Multiple EC2 instances"
+    },
+    "amazon-elastic-block-store-multiple-volumes": {
+      "description": "Several EBS volumes"
+    },
+    "amazon-elastic-block-store-snapshot": {
+      "description": "Point-in-time copy of a volume in S3"
+    },
+    "amazon-elastic-block-store-volume": {
+      "description": "Block storage volume attached to an instance"
+    },
+    "amazon-aurora-mariadb-instance": {
+      "description": "RDS for MariaDB instance"
+    },
+    "amazon-aurora-mariadb-instance-alternate": {
+      "description": "RDS for MariaDB instance, alternate icon"
+    },
+    "amazon-aurora-mysql-instance": {
+      "description": "Aurora MySQL-compatible instance"
+    },
+    "amazon-aurora-mysql-instance-alternate": {
+      "description": "Aurora MySQL-compatible instance, alternate icon"
+    },
+    "amazon-aurora-oracle-instance": {
+      "description": "RDS for Oracle instance"
+    },
+    "amazon-aurora-oracle-instance-alternate": {
+      "description": "RDS for Oracle instance, alternate icon"
+    },
+    "amazon-aurora-postgresql-instance": {
+      "description": "Aurora PostgreSQL-compatible instance"
+    },
+    "amazon-aurora-postgresql-instance-alternate": {
+      "description": "Aurora PostgreSQL-compatible instance, alternate icon"
+    },
+    "amazon-aurora-sql-server-instance": {
+      "description": "RDS for SQL Server instance"
+    },
+    "amazon-aurora-sql-server-instance-alternate": {
+      "description": "RDS for SQL Server instance, alternate icon"
+    },
+    "amazon-eventbridge-event": {
+      "description": "Event delivered through EventBridge"
+    },
+    "amazon-route-53-hosted-zone": {
+      "description": "Container of DNS records for a domain"
+    },
+    "elastic-load-balancing-application-load-balancer": {
+      "name": "Application Load Balancer (ALB)",
+      "label": "Application\nLoad Balancer",
+      "description": "Layer 7 (HTTP/HTTPS) load balancer"
+    },
+    "elastic-load-balancing-classic-load-balancer": {
+      "name": "Classic Load Balancer",
+      "label": "Classic\nLoad Balancer",
+      "description": "Previous-generation load balancer"
+    },
+    "elastic-load-balancing-gateway-load-balancer": {
+      "name": "Gateway Load Balancer (GWLB)",
+      "label": "Gateway\nLoad Balancer",
+      "description": "Layer 3 load balancer for virtual appliances"
+    },
+    "elastic-load-balancing-network-load-balancer": {
+      "name": "Network Load Balancer (NLB)",
+      "label": "Network\nLoad Balancer",
+      "description": "Layer 4 (TCP/UDP/TLS) load balancer"
+    },
+    "aws-backup-aws-backup-for-aws-cloudformation": {
+      "name": "AWS Backup for AWS CloudFormation",
+      "label": "Backup for\nCloudFormation",
+      "description": "Backs up CloudFormation stacks and their resources"
+    },
+    "aws-backup-aws-backup-support-for-amazon-fsx-for-netapp-ontap": {
+      "name": "AWS Backup support for Amazon FSx for NetApp ONTAP",
+      "label": "Backup for\nFSx for ONTAP",
+      "description": "Backs up FSx for NetApp ONTAP volumes"
+    },
+    "aws-backup-aws-backup-support-for-amazon-s3": {
+      "name": "AWS Backup support for Amazon S3",
+      "label": "Backup for S3",
+      "description": "Backs up S3 buckets"
+    },
+    "aws-backup-aws-backup-support-for-vmware-workloads": {
+      "name": "AWS Backup support for VMware workloads",
+      "label": "Backup for VMware",
+      "description": "Backs up on-premises and VMware Cloud on AWS VMs"
+    },
+    "aws-backup-virtual-machine-monitor": {
+      "description": "Monitoring of protected virtual machines"
+    },
+    "amazon-workspaces-family-amazon-workspaces": {
+      "name": "Amazon WorkSpaces",
+      "description": "Persistent virtual desktop"
+    },
+    "aws-storage-gateway-amazon-fsx-file-gateway": {
+      "name": "Amazon FSx File Gateway",
+      "description": "On-premises access to FSx for Windows file shares"
+    },
+    "aws-storage-gateway-amazon-s3-file-gateway": {
+      "name": "Amazon S3 File Gateway",
+      "description": "NFS/SMB file shares backed by S3"
+    }
+  }
+}

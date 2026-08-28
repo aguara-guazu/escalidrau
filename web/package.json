@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "aws-icons": "node aws-icons/build.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",

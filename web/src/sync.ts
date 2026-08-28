@@ -22,8 +22,72 @@ type ServerRequest = {
     | "export_scene"
     | "view_canvas"
     | "render_library"
-    | "add_library_item";
+    | "add_library_item"
+    | "connect_elements";
   payload: Record<string, unknown>;
+};
+
+type Connection = {
+  from: string;
+  to: string;
+  label?: string;
+  route?: "straight" | "elbow";
+  strokeColor?: string;
+  strokeStyle?: "solid" | "dashed" | "dotted";
+  startArrowhead?: "arrow" | "triangle" | "bar" | "dot" | "none";
+  endArrowhead?: "arrow" | "triangle" | "bar" | "dot" | "none";
+};
+
+type Box = { x: number; y: number; width: number; height: number };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyElement = Record<string, any> & { id: string; type: string };
+
+const boxOf = (elements: AnyElement[]): Box => {
+  const minX = Math.min(...elements.map((element) => element.x as number));
+  const minY = Math.min(...elements.map((element) => element.y as number));
+  const maxX = Math.max(...elements.map((element) => (element.x as number) + (element.width as number)));
+  const maxY = Math.max(...elements.map((element) => (element.y as number) + (element.height as number)));
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+};
+
+const centerOf = (box: Box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+
+// Distance from a point outside an axis-aligned box to its border (0 inside).
+const distanceToBox = (point: { x: number; y: number }, box: Box) => {
+  const dx = Math.max(box.x - point.x, 0, point.x - (box.x + box.width));
+  const dy = Math.max(box.y - point.y, 0, point.y - (box.y + box.height));
+  return Math.hypot(dx, dy);
+};
+
+// Point on the border of a shape (ellipse, diamond or box for everything
+// else) along the ray from its centre towards `towards`, pushed `pad` px out.
+const borderPoint = (
+  element: Box & { type?: string },
+  towards: { x: number; y: number },
+  pad: number
+) => {
+  const cx = element.x + element.width / 2;
+  const cy = element.y + element.height / 2;
+  const dx = towards.x - cx;
+  const dy = towards.y - cy;
+  if (dx === 0 && dy === 0) {
+    return { x: cx, y: cy };
+  }
+  const a = element.width / 2;
+  const b = element.height / 2;
+  let border: number;
+  if (element.type === "ellipse") {
+    border = 1 / Math.hypot(dx / a, dy / b);
+  } else if (element.type === "diamond") {
+    border = 1 / (Math.abs(dx) / a + Math.abs(dy) / b);
+  } else {
+    const tx = dx !== 0 ? a / Math.abs(dx) : Infinity;
+    const ty = dy !== 0 ? b / Math.abs(dy) : Infinity;
+    border = Math.min(tx, ty);
+  }
+  const t = Math.min(border + pad / Math.hypot(dx, dy), 1);
+  return { x: cx + dx * t, y: cy + dy * t };
 };
 
 type MoveInstruction = {
@@ -50,7 +114,7 @@ const freshId = () =>
 // Library items are element groups with internal references (groups, labels,
 // bindings); every placement must be an independent clone with remapped ids.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const cloneLibraryElements = (elements: Array<Record<string, any>>): Array<Record<string, any>> => {
+export const cloneLibraryElements = (elements: Array<Record<string, any>>): Array<Record<string, any>> => {
   const idMap = new Map<string, string>();
   const groupMap = new Map<string, string>();
   for (const element of elements) {
@@ -238,8 +302,15 @@ export class SyncClient {
         );
       case "add_library_item":
         return this.addLibraryItem(
-          request.payload as { elements: Array<Record<string, unknown>>; x: number; y: number }
+          request.payload as {
+            elements: Array<Record<string, unknown>>;
+            x: number;
+            y: number;
+            label?: string;
+          }
         );
+      case "connect_elements":
+        return this.connectElements(request.payload.connections as Connection[]);
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -281,33 +352,6 @@ export class SyncClient {
   private routeBoundArrows<T extends { id: string; type: string }>(converted: readonly T[]): T[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const byId = new Map<string, any>(converted.map((element) => [element.id, element]));
-    const borderPoint = (
-      element: { type: string; x: number; y: number; width: number; height: number },
-      towards: { x: number; y: number },
-      pad = SyncClient.ARROW_BORDER_PAD
-    ) => {
-      const cx = element.x + element.width / 2;
-      const cy = element.y + element.height / 2;
-      const dx = towards.x - cx;
-      const dy = towards.y - cy;
-      if (dx === 0 && dy === 0) {
-        return { x: cx, y: cy };
-      }
-      const a = element.width / 2;
-      const b = element.height / 2;
-      let border: number;
-      if (element.type === "ellipse") {
-        border = 1 / Math.hypot(dx / a, dy / b);
-      } else if (element.type === "diamond") {
-        border = 1 / (Math.abs(dx) / a + Math.abs(dy) / b);
-      } else {
-        const tx = dx !== 0 ? a / Math.abs(dx) : Infinity;
-        const ty = dy !== 0 ? b / Math.abs(dy) : Infinity;
-        border = Math.min(tx, ty);
-      }
-      const t = Math.min(border + pad / Math.hypot(dx, dy), 1);
-      return { x: cx + dx * t, y: cy + dy * t };
-    };
     return converted.map((element) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const el = element as any;
@@ -331,8 +375,8 @@ export class SyncClient {
       const endAnchor = endTarget
         ? { x: endTarget.x + endTarget.width / 2, y: endTarget.y + endTarget.height / 2 }
         : currentEnd;
-      const start = startTarget ? borderPoint(startTarget, endAnchor) : currentStart;
-      const end = endTarget ? borderPoint(endTarget, startAnchor) : currentEnd;
+      const start = startTarget ? borderPoint(startTarget, endAnchor, SyncClient.ARROW_BORDER_PAD) : currentStart;
+      const end = endTarget ? borderPoint(endTarget, startAnchor, SyncClient.ARROW_BORDER_PAD) : currentEnd;
       const routedGap = Math.max(1, SyncClient.ARROW_BORDER_PAD);
       return {
         ...el,
@@ -640,11 +684,21 @@ export class SyncClient {
         Math.max(...cloned.map((element) => (element.y as number) + (element.height as number))) - minY;
       return { label, cloned, minX, minY, width, height };
     });
-    const cellWidth = Math.max(...prepared.map((item) => item.width), 60) + gap;
+    // Labels are measured before laying out the grid so a cell is at least as
+    // wide as its label (long official names otherwise run into the next cell).
+    const labelElements = convertToExcalidrawElements(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      prepared.map((item) => ({ type: "text", x: 0, y: 0, text: item.label, fontSize: 16 })) as any
+    );
+    const cellWidth =
+      Math.max(
+        ...prepared.map((item) => item.width),
+        ...labelElements.map((element) => element.width),
+        60
+      ) + gap;
     const cellHeight = Math.max(...prepared.map((item) => item.height), 40) + labelHeight + gap;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sheet: Array<Record<string, any>> = [];
-    const labels: Array<Record<string, unknown>> = [];
     prepared.forEach((item, position) => {
       const offsetX = (position % columns) * cellWidth;
       const offsetY = Math.floor(position / columns) * cellHeight;
@@ -656,41 +710,244 @@ export class SyncClient {
           y: (element.y as number) - item.minY + offsetY
         }))
       );
-      labels.push({
-        type: "text",
+      sheet.push({
+        ...labelElements[position],
         x: offsetX,
-        y: offsetY + cellHeight - labelHeight - gap / 2,
-        text: item.label,
-        fontSize: 16
+        y: offsetY + cellHeight - labelHeight - gap / 2
       });
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const labelElements = convertToExcalidrawElements(labels as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.renderPng([...sheet, ...(labelElements as any)]);
+    return this.renderPng(sheet);
   }
 
+  // x/y anchor the item's main shape (largest non-text element — the icon or
+  // the group box), so items placed on a grid line up regardless of how wide
+  // their labels are. The label text can be replaced at placement time; the
+  // replacement is re-measured and keeps the original alignment anchor.
   private addLibraryItem(payload: {
     elements: Array<Record<string, unknown>>;
     x: number;
     y: number;
+    label?: string;
   }) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cloned = cloneLibraryElements(payload.elements as Array<Record<string, any>>);
-    const minX = Math.min(...cloned.map((element) => element.x as number));
-    const minY = Math.min(...cloned.map((element) => element.y as number));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const placed: Array<Record<string, any>> = cloned.map((element) => ({
+    const cloned = cloneLibraryElements(payload.elements as AnyElement[]) as AnyElement[];
+    const shapes = cloned.filter((element) => element.type !== "text");
+    const anchor =
+      shapes.length > 0
+        ? shapes.reduce((best, element) =>
+            (element.width as number) * (element.height as number) >
+            (best.width as number) * (best.height as number)
+              ? element
+              : best
+          )
+        : cloned[0];
+    const dx = payload.x - (anchor.x as number);
+    const dy = payload.y - (anchor.y as number);
+    let placed: AnyElement[] = cloned.map((element) => ({
       ...element,
-      x: (element.x as number) + payload.x - minX,
-      y: (element.y as number) + payload.y - minY
+      x: (element.x as number) + dx,
+      y: (element.y as number) + dy
     }));
+    if (payload.label !== undefined) {
+      const labels = placed.filter((element) => element.type === "text" && !element.containerId);
+      if (labels.length > 0) {
+        const template = labels[0];
+        const replacement = convertToExcalidrawElements(
+          [
+            {
+              type: "text",
+              text: payload.label,
+              fontSize: template.fontSize,
+              fontFamily: template.fontFamily,
+              textAlign: template.textAlign,
+              strokeColor: template.strokeColor,
+              x:
+                template.textAlign === "center"
+                  ? (template.x as number) + (template.width as number) / 2
+                  : template.textAlign === "right"
+                    ? (template.x as number) + (template.width as number)
+                    : template.x,
+              y: template.y,
+              groupIds: template.groupIds
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ] as any,
+          { regenerateIds: true }
+        ) as unknown as AnyElement[];
+        placed = [...placed.filter((element) => !labels.includes(element)), ...replacement];
+      }
+    }
     this.api.updateScene({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       elements: [...this.api.getSceneElementsIncludingDeleted(), ...placed] as any,
       captureUpdate: CaptureUpdateAction.IMMEDIATELY
     });
-    return { addedIds: placed.map((element) => element.id) };
+    return {
+      addedIds: placed.map((element) => element.id),
+      added: placed.map((element) => ({
+        id: element.id,
+        type: element.type,
+        x: Math.round(element.x as number),
+        y: Math.round(element.y as number),
+        width: Math.round(element.width as number),
+        height: Math.round(element.height as number)
+      }))
+    };
+  }
+
+  private static readonly CONNECTOR_PAD = 6;
+
+  // The "item" around an icon is the icon plus the text labels it is grouped
+  // with; vertical connectors leave and enter through the item so they clear
+  // the label, horizontal ones through the icon on its centre line.
+  private itemBoxes(element: AnyElement, alive: AnyElement[]) {
+    const icon: Box & { type: string } = {
+      type: element.type,
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height
+    };
+    const groupIds = (element.groupIds as string[] | undefined) ?? [];
+    const labels =
+      groupIds.length === 0
+        ? []
+        : alive.filter(
+            (candidate) =>
+              candidate.type === "text" &&
+              candidate.id !== element.id &&
+              ((candidate.groupIds as string[] | undefined) ?? []).some((groupId) =>
+                groupIds.includes(groupId)
+              )
+          );
+    const item = boxOf([element, ...labels]);
+    // Column through the icon, spanning the item vertically.
+    const column: Box & { type: string } = {
+      type: "rectangle",
+      x: icon.x,
+      y: item.y,
+      width: icon.width,
+      height: item.height
+    };
+    return { icon, item, column };
+  }
+
+  private connectElements(connections: Connection[]) {
+    const alive = this.api
+      .getSceneElementsIncludingDeleted()
+      .filter((element) => !element.isDeleted) as unknown as AnyElement[];
+    const byId = new Map(alive.map((element) => [element.id, element]));
+    const pad = SyncClient.CONNECTOR_PAD;
+    const additions: AnyElement[] = [];
+    const boundTo = new Map<string, string[]>();
+    const connected: Array<{ id: string; from: string; to: string }> = [];
+    const missingIds: string[] = [];
+    for (const connection of connections) {
+      const source = byId.get(connection.from);
+      const target = byId.get(connection.to);
+      if (!source || !target) {
+        missingIds.push(...[connection.from, connection.to].filter((id) => !byId.has(id)));
+        continue;
+      }
+      const s = this.itemBoxes(source, alive);
+      const t = this.itemBoxes(target, alive);
+      const sc = centerOf(s.icon);
+      const tc = centerOf(t.icon);
+      const dx = tc.x - sc.x;
+      const dy = tc.y - sc.y;
+      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      const aligned = horizontal ? Math.abs(dy) < 1 : Math.abs(dx) < 1;
+      let start: { x: number; y: number };
+      let end: { x: number; y: number };
+      let corner: { x: number; y: number } | null = null;
+      if (connection.route === "elbow" && !aligned) {
+        if (horizontal) {
+          start = { x: dx >= 0 ? s.icon.x + s.icon.width + pad : s.icon.x - pad, y: sc.y };
+          end = { x: tc.x, y: dy >= 0 ? t.icon.y - pad : t.item.y + t.item.height + pad };
+          corner = { x: end.x, y: start.y };
+        } else {
+          start = { x: sc.x, y: dy >= 0 ? s.item.y + s.item.height + pad : s.icon.y - pad };
+          end = { x: dx >= 0 ? t.icon.x - pad : t.icon.x + t.icon.width + pad, y: tc.y };
+          corner = { x: start.x, y: end.y };
+        }
+      } else if (horizontal) {
+        start = borderPoint(s.icon, tc, pad);
+        end = borderPoint(t.icon, sc, pad);
+      } else {
+        start = borderPoint(s.column, tc, pad);
+        end = borderPoint(t.column, sc, pad);
+      }
+      const points = corner
+        ? [
+            [0, 0],
+            [corner.x - start.x, corner.y - start.y],
+            [end.x - start.x, end.y - start.y]
+          ]
+        : [
+            [0, 0],
+            [end.x - start.x, end.y - start.y]
+          ];
+      const arrowhead = (value: Connection["endArrowhead"], fallback: string | null) =>
+        value === undefined ? fallback : value === "none" ? null : value;
+      const skeleton: Record<string, unknown> = {
+        type: "arrow",
+        x: start.x,
+        y: start.y,
+        points,
+        strokeColor: connection.strokeColor ?? "#1e1e1e",
+        strokeStyle: connection.strokeStyle ?? "solid",
+        startArrowhead: arrowhead(connection.startArrowhead, null),
+        endArrowhead: arrowhead(connection.endArrowhead, "arrow"),
+        ...(connection.label ? { label: { text: connection.label, fontSize: 16 } } : {})
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const converted = convertToExcalidrawElements([skeleton] as any, {
+        regenerateIds: true
+      }) as unknown as AnyElement[];
+      const arrow = converted.find((element) => element.type === "arrow");
+      if (!arrow) {
+        continue;
+      }
+      const xs = points.map((point) => point[0]);
+      const ys = points.map((point) => point[1]);
+      const bound = {
+        ...arrow,
+        width: Math.max(...xs) - Math.min(...xs),
+        height: Math.max(...ys) - Math.min(...ys),
+        startBinding: {
+          elementId: source.id,
+          focus: 0,
+          gap: Math.max(1, distanceToBox(start, s.icon))
+        },
+        endBinding: { elementId: target.id, focus: 0, gap: Math.max(1, distanceToBox(end, t.icon)) }
+      };
+      additions.push(bound, ...converted.filter((element) => element !== arrow));
+      for (const id of [source.id, target.id]) {
+        boundTo.set(id, [...(boundTo.get(id) ?? []), bound.id]);
+      }
+      connected.push({ id: bound.id, from: source.id, to: target.id });
+    }
+    const elements = this.api.getSceneElementsIncludingDeleted().map((element) => {
+      const arrows = boundTo.get(element.id);
+      if (!arrows) {
+        return element;
+      }
+      const el = element as unknown as AnyElement;
+      return {
+        ...el,
+        boundElements: [
+          ...((el.boundElements as Array<{ id: string; type: string }> | null) ?? []),
+          ...arrows.map((id) => ({ id, type: "arrow" }))
+        ],
+        version: (el.version as number) + 1,
+        versionNonce: randomNonce()
+      };
+    });
+    this.api.updateScene({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      elements: [...elements, ...additions] as any,
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY
+    });
+    return { connected, missingIds };
   }
 
   // Agent-facing render: fits the longest side to ~1600px so text stays

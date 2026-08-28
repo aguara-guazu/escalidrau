@@ -44,7 +44,7 @@ After that it is all conversation:
 
 Your agent **looks** at what it drew: it inspects the canvas and fixes what came out wrong — text overflowing a shape, crossed arrows, overlapping parts — before telling you it is done. It also sees what *you* do: move a box or change a label and it works from there.
 
-Installed icon packs? It uses them. With the AWS pack, an AWS diagram comes out with the real icons:
+The official [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) come built in — service icons, group boxes (VPC, subnets, Region, Availability Zone…) and general resources (users, clients, the internet) — each with a short description your agent can search, so an AWS diagram comes out with the real icons. Other packs you install work the same way:
 
 ![Exported diagram using AWS icons](docs/export.png)
 
@@ -66,7 +66,7 @@ The nice part of the model: **the drawing travels straight between the computers
 
 - **Mermaid both ways.** Paste a `flowchart` and it becomes an editable drawing; or turn what you drew into Mermaid to paste into a README.
 - **Drag and drop.** Drop an `.excalidraw` file or a Mermaid file on the window and it offers to import it.
-- **Icon packs.** Install any of them from the public catalog in one click; they stay installed.
+- **Icon packs, in folders.** The library panel shows every pack as folders (collection → category → icons) with search. The AWS Architecture Icons are included — services, resources, groups and general icons; install any other pack from the public catalog in one click. They all stay installed.
 - **It keeps itself current.** On macOS it installs new versions on launch and tells you what changed; on Windows and Linux it lets you know when one is out.
 - **Export** to PNG, SVG, or a file you can keep editing later.
 
@@ -90,12 +90,13 @@ xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
 
 ## For developers
 
-While the app is open it exposes an MCP server at `http://localhost:3580/mcp` with these tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`.
+While the app is open it exposes an MCP server at `http://localhost:3580/mcp` with these tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `connect_elements`, `update_elements`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`. The **MCP** menu also installs the `escalidrau` skill (`skills/escalidrau/SKILL.md`) for Claude Code and Codex: the layout method the agent follows to keep diagrams tidy — grid spacing, label clearance, anchored connectors.
 
 ```bash
 npm install
 npm run dev    # web (vite, :3579) + server (:3580)
 npm run app    # Electron app in dev mode
+npm run aws-icons -w web -- <Asset-Package.zip>   # regenerate the bundled AWS icons from a new asset package
 npm run dist         # macOS build into desktop/release/
 npm run dist:win     # Windows build (needs Wine when run from macOS or Linux)
 npm run dist:linux   # Linux build (AppImage + deb)

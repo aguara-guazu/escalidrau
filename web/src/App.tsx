@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  DefaultSidebar,
   Excalidraw,
   MainMenu,
+  Sidebar,
   WelcomeScreen,
   loadFromBlob,
   useHandleLibrary
 } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI, LibraryItems } from "@excalidraw/excalidraw/types";
+import type {
+  BinaryFileData,
+  ExcalidrawImperativeAPI,
+  LibraryItems
+} from "@excalidraw/excalidraw/types";
 import { SyncClient } from "./sync";
 import { CollabClient, type RoomInfo } from "./collab";
 import { RoomDialog } from "./RoomDialog";
@@ -14,11 +20,22 @@ import { JamButton } from "./JamButton";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { copyIcon, importIcon, trashIcon } from "./icons";
+import { LibraryFolders } from "./LibraryFolders";
+import { copyIcon, folderIcon, importIcon, libraryIcon, trashIcon } from "./icons";
+import {
+  bundledFiles,
+  installBundledPack,
+  loadBundledPack,
+  setLibraryFilesSource,
+  type BundledPack,
+  type StoredLibraryItem
+} from "./bundledIcons";
 import "./ui.css";
 import "./debrand.css";
 
 const MERMAID_KEYWORDS = /^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram)\b/;
+// Tab of the default sidebar that shows the library as folders.
+const FOLDERS_TAB = "folders";
 
 type DroppedFile = {
   name: string;
@@ -73,6 +90,27 @@ export default function App() {
       .then((response) => (response.ok ? response.json() : []))
       .catch(() => []) as Promise<LibraryItems>
   }));
+  // Mirror of the editor's library for the folder view (onLibraryChange feeds it).
+  const [libraryItems, setLibraryItems] = useState<StoredLibraryItem[]>([]);
+  useEffect(() => {
+    void initialData.libraryItems.then((items) => setLibraryItems(items as StoredLibraryItem[]));
+  }, [initialData]);
+  // The bundled AWS icon pack: its SVGs must be registered as files before the
+  // editor renders (library thumbnails read them), so the editor mounts once
+  // the pack is loaded. undefined = loading, null = unavailable.
+  const [pack, setPack] = useState<BundledPack | null | undefined>(undefined);
+  const packRef = useRef<BundledPack | null>(null);
+  const packFilesRef = useRef<Record<string, BinaryFileData>>({});
+  useEffect(() => {
+    void loadBundledPack().then((loaded) => {
+      if (loaded) {
+        packRef.current = loaded;
+        packFilesRef.current = bundledFiles(loaded);
+        setLibraryFilesSource(() => packFilesRef.current);
+      }
+      setPack(loaded);
+    });
+  }, []);
 
   // Handles the #addLibrary return from the public libraries site.
   useHandleLibrary({ excalidrawAPI });
@@ -80,6 +118,22 @@ export default function App() {
   const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api;
     setExcalidrawAPI(api);
+    const bundled = packRef.current;
+    if (bundled) {
+      api.addFiles(Object.values(packFilesRef.current));
+      setLibraryFilesSource(() => api.getFiles());
+      void initialData.libraryItems
+        .then((items) => installBundledPack(api, bundled, items))
+        .then((result) => {
+          if (result && result.added > 0) {
+            api.setToast({
+              message: `AWS Architecture Icons added to your library (${result.added} items)`,
+              duration: 4000
+            });
+          }
+        })
+        .catch((error) => console.error("[library] bundled pack install failed:", error));
+    }
     if (!syncRef.current) {
       syncRef.current = new SyncClient(api);
     }
@@ -123,6 +177,7 @@ export default function App() {
   }, []);
 
   const persistLibrary = useCallback((items: LibraryItems) => {
+    setLibraryItems(items as StoredLibraryItem[]);
     void fetch("/library", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -263,6 +318,10 @@ export default function App() {
     return () => window.removeEventListener("drop", onDrop, true);
   }, []);
 
+  if (pack === undefined) {
+    return <div style={{ height: "100%", width: "100%" }} />;
+  }
+
   return (
     <div style={{ height: "100%", width: "100%" }}>
       <Excalidraw
@@ -326,6 +385,19 @@ export default function App() {
           </WelcomeScreen.Center>
           <WelcomeScreen.Hints.ToolbarHint />
         </WelcomeScreen>
+        <DefaultSidebar.Trigger tab={FOLDERS_TAB} icon={libraryIcon} title="Library">
+          Library
+        </DefaultSidebar.Trigger>
+        <DefaultSidebar>
+          <DefaultSidebar.TabTriggers>
+            <Sidebar.TabTrigger tab={FOLDERS_TAB} title="Library folders">
+              {folderIcon}
+            </Sidebar.TabTrigger>
+          </DefaultSidebar.TabTriggers>
+          <Sidebar.Tab tab={FOLDERS_TAB}>
+            <LibraryFolders items={libraryItems} api={excalidrawAPI} />
+          </Sidebar.Tab>
+        </DefaultSidebar>
       </Excalidraw>
       <MermaidDialog
         open={mermaidOpen}

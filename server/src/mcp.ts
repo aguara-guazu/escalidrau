@@ -24,7 +24,7 @@ You may set your own unique "id" on each element and reference those ids later i
 Common properties: x, y, width, height, strokeColor, backgroundColor, fillStyle ("hachure"|"cross-hatch"|"solid"), strokeStyle ("solid"|"dashed"|"dotted"), fontSize.
 Shapes accept "label": {"text": "..."} to render centered text inside them.
 Arrows accept "start"/"end" as {"id": "<id of an element in THIS SAME call>"} for automatic binding, or plain geometry via x, y and "points": [[0,0],[dx,dy]].
-To connect elements that already exist on the canvas, draw the arrow with explicit x/y/points coordinates (cross-call id binding is not supported).
+To connect elements that already exist on the canvas (including placed library icons) use connect_elements instead — it anchors the arrow to both ends and routes it through their centre lines.
 
 Example:
 [{"id":"api","type":"rectangle","x":100,"y":100,"width":180,"height":70,"label":{"text":"API"}},
@@ -45,7 +45,58 @@ export type SessionContext = {
 type StoredLibraryItem = {
   id?: string;
   name?: string;
+  status?: string;
+  description?: string;
+  category?: string;
+  folder?: string[];
   elements: Array<Record<string, unknown>>;
+};
+
+// Items carry their folder path; the rest land in the same two pseudo-folders
+// the in-app library panel shows them under.
+const folderOf = (item: StoredLibraryItem): string =>
+  Array.isArray(item.folder) && item.folder.length > 0
+    ? item.folder.join("/")
+    : item.status === "unpublished"
+      ? "Personal library"
+      : "Other libraries";
+
+// Every whitespace-separated term must appear in the item's name, description
+// or folder path (case-insensitive).
+const matchesQuery = (item: StoredLibraryItem, query: string): boolean => {
+  const haystack = `${item.name ?? ""} ${item.description ?? ""} ${folderOf(item)}`.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term !== "")
+    .every((term) => haystack.includes(term));
+};
+
+const inFolder = (item: StoredLibraryItem, folder: string): boolean => {
+  const path = folderOf(item).toLowerCase();
+  const wanted = folder.toLowerCase().replace(/^\/+|\/+$/g, "");
+  return path === wanted || path.startsWith(`${wanted}/`);
+};
+
+const filterLibrary = (items: StoredLibraryItem[], query?: string, folder?: string) => {
+  let indexed = items.map((item, index) => ({ item, index }));
+  const wantedFolder = folder?.trim();
+  if (wantedFolder) {
+    indexed = indexed.filter(({ item }) => inFolder(item, wantedFolder));
+  }
+  const trimmed = query?.trim();
+  return trimmed ? indexed.filter(({ item }) => matchesQuery(item, trimmed)) : indexed;
+};
+
+const folderSummary = (items: StoredLibraryItem[]) => {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const path = folderOf(item);
+    counts.set(path, (counts.get(path) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([path, count]) => ({ path, items: count }));
 };
 
 const normalizeLibrary = (raw: unknown[]): StoredLibraryItem[] =>
@@ -74,7 +125,9 @@ SIZING RULES (default font ~= 11px of width per character):
 - Resizing an existing shape does NOT re-wrap its label; delete and re-add the shape with the right size instead.
 - Between shapes connected by a labeled arrow, leave a gap of at least 12px per label character.
 
-If installed library icons match the diagram's domain (check get_library), prefer placing them with add_library_item over drawing generic shapes.
+LAYOUT RULES for icon diagrams: plan a grid first and put connected items on the same row or column; icon centres at least 220px apart horizontally (200px for 48px resource icons) and 170px vertically so labels never touch; place group boxes before their contents and size them from the contents (60px top margin, 30px sides and bottom); connect existing items only with connect_elements (bound, centre-line arrows). The "escalidrau" skill installed with the MCP server (app menu MCP) spells out the whole method.
+
+The library is organized in folders. The official AWS Architecture Icons are installed by default under "AWS Architecture Icons": Services/<category> (EC2, Lambda, S3, DynamoDB, ...), Resources/<category> (S3 bucket, Lambda function, VPC NAT gateway, IAM role, ...), Groups (AWS Cloud, Region, Availability Zone, VPC, public/private subnet, Auto Scaling group, ...) and General (User, Client, Internet, Server, ...). For AWS diagrams use them instead of drawing generic shapes: get_library {} lists the folders, get_library { folder } or { query } finds items, add_library_item places one. A group box is a rectangle meant to contain other elements — resize it with update_elements (width/height) after placing it. Other installed icon packs work the same way.
 
 The human edits concurrently: tool responses open with a digest of their changes — read it and never overwrite their work blindly.`;
 
@@ -239,17 +292,27 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
     "get_library",
     {
       description:
-        "List the shape-library items installed in the app (icon packs like AWS services). Returns each item's index and name. When a diagram's domain matches installed icons, prefer placing them (add_library_item) over drawing plain shapes; use view_library to see what they look like.",
-      inputSchema: {}
+        "Browse the shape library installed in the app, which is organized in folders (the official AWS Architecture Icons ship with it: hundreds of service and resource icons, group boxes such as VPC, subnet, Region and Availability Zone, and general resources such as User, Client and Internet). Without arguments it lists every folder path with its item count. \"folder\" (a path or path prefix, e.g. \"AWS Architecture Icons/Services/Compute\") lists the items in it; \"query\" (terms matched against name, description and folder, e.g. \"lambda\", \"s3 bucket\", \"private subnet\") searches everywhere; both combine. Items come with index, name, description and folder; place one with add_library_item by index, or look at them with view_library.",
+      inputSchema: { query: z.string().optional(), folder: z.string().optional() }
     },
-    async () => {
+    async ({ query, folder }) => {
       const items = normalizeLibrary(await readLibrary());
+      if (!query?.trim() && !folder?.trim()) {
+        return jsonResult({
+          count: items.length,
+          folders: folderSummary(items),
+          hint: "Call again with folder (path prefix) to list a folder, or query to search by name/description."
+        });
+      }
+      const matches = filterLibrary(items, query, folder);
       return jsonResult({
         count: items.length,
-        items: items.map((item, index) => ({
+        matched: matches.length,
+        items: matches.map(({ item, index }) => ({
           index,
           name: item.name ?? null,
-          elements: item.elements.length
+          description: item.description,
+          folder: folderOf(item)
         }))
       });
     }
@@ -259,27 +322,30 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
     "view_library",
     {
       description:
-        "Render installed library items as a labeled contact-sheet image so you can see what each icon looks like. Paginate with offset/limit; labels show the index to use with add_library_item.",
+        "Render installed library items as a labeled contact-sheet image so you can see what each icon looks like. \"folder\" and \"query\" filter like get_library; paginate the (filtered) list with offset/limit. Labels show the index to use with add_library_item.",
       inputSchema: {
+        query: z.string().optional(),
+        folder: z.string().optional(),
         offset: z.number().int().min(0).default(0),
         limit: z.number().int().min(1).max(40).default(24)
       }
     },
-    async ({ offset, limit }) => {
+    async ({ query, folder, offset, limit }) => {
       const items = normalizeLibrary(await readLibrary());
-      const page = items.slice(offset, offset + limit);
+      const filtered = filterLibrary(items, query, folder);
+      const page = filtered.slice(offset, offset + limit);
       if (page.length === 0) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `No library items in range (library has ${items.length}).`
+              text: `No library items in range (${filtered.length} item(s) match, library has ${items.length}).`
             }
           ]
         };
       }
-      const payload = page.map((item, position) => ({
-        label: `${offset + position}${item.name ? ` ${item.name}` : ""}`,
+      const payload = page.map(({ item, index }) => ({
+        label: `${index}${item.name ? ` ${item.name}` : ""}`,
         elements: item.elements
       }));
       const result = (await bridge.request("render_library", { items: payload }, 30_000)) as {
@@ -290,7 +356,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
           ...digest(),
           {
             type: "text" as const,
-            text: `Library items ${offset}-${offset + page.length - 1} of ${items.length}. Place one with add_library_item { item: <index>, x, y }.`
+            text: `Library items ${page[0].index}-${page[page.length - 1].index}${query?.trim() || folder?.trim() ? ` (${filtered.length} match(es)${folder?.trim() ? ` in "${folder.trim()}"` : ""}${query?.trim() ? ` for "${query.trim()}"` : ""})` : ""} of ${items.length}. Place one with add_library_item { item: <index>, x, y }.`
           },
           { type: "image" as const, data: result.data, mimeType: "image/png" }
         ]
@@ -302,14 +368,15 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
     "add_library_item",
     {
       description:
-        "Place an installed library icon on the canvas by its index (from get_library / view_library). x/y set the top-left of the placed item. The instance is independent — connect it with arrows or move it like any other part.",
+        "Place an installed library icon on the canvas by its index (from get_library / view_library). x/y set the top-left of the item's main shape — the icon (64px for services, 48px for resources) or the box of a group item — so items placed on a grid line up whatever their label width; the label hangs below the icon. Optional \"label\" replaces the item's text (e.g. \"Orders API\" on a Lambda icon; keep it under ~20 characters). The result lists every placed element with id, type, x, y, width and height: use the image (or rectangle) id with connect_elements and the rectangle id of a group box with update_elements to resize it.",
       inputSchema: {
         item: z.number().int().min(0),
         x: z.number(),
-        y: z.number()
+        y: z.number(),
+        label: z.string().optional()
       }
     },
-    async ({ item, x, y }) => {
+    async ({ item, x, y, label }) => {
       const items = normalizeLibrary(await readLibrary());
       const entry = items[item];
       if (!entry) {
@@ -317,11 +384,37 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
       }
       const result = await bridge.request(
         "add_library_item",
-        { elements: entry.elements, x, y },
+        { elements: entry.elements, x, y, ...(label !== undefined ? { label } : {}) },
         30_000
       );
       return mutationResult({ name: entry.name ?? null, ...(result as object) });
     }
+  );
+
+  server.registerTool(
+    "connect_elements",
+    {
+      description:
+        "Draw arrows between elements that already exist on the canvas (placed library icons, group boxes, shapes). Each connection names the source and target element ids — for a library item use its image id (or the rectangle id of a group box), never the label's. The arrow is bound to both ends (it follows them when moved) and leaves/enters through their centre lines: horizontal connections touch the icons' side edges, vertical ones start below the source's label and stop above the target's icon, so text is never crossed. route \"straight\" (default) is a single segment — perfectly horizontal/vertical when the items share a row or column; route \"elbow\" adds one bend for items that are not aligned. Optional label (keep it short; leave ~12px per character between the items), strokeStyle, strokeColor and arrowheads.",
+      inputSchema: {
+        connections: z
+          .array(
+            z.object({
+              from: z.string(),
+              to: z.string(),
+              label: z.string().optional(),
+              route: z.enum(["straight", "elbow"]).optional(),
+              strokeColor: z.string().optional(),
+              strokeStyle: z.enum(["solid", "dashed", "dotted"]).optional(),
+              startArrowhead: z.enum(["arrow", "triangle", "bar", "dot", "none"]).optional(),
+              endArrowhead: z.enum(["arrow", "triangle", "bar", "dot", "none"]).optional()
+            })
+          )
+          .min(1)
+      }
+    },
+    async ({ connections }) =>
+      mutationResult(await bridge.request("connect_elements", { connections }))
   );
 
   server.registerTool(

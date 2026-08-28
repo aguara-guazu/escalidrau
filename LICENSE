@@ -24,3 +24,10 @@ SOFTWARE.
 
 This application bundles Excalidraw (https://github.com/excalidraw/excalidraw),
 licensed under the MIT License, Copyright (c) 2020 Excalidraw and contributors.
+
+This application bundles the AWS Architecture Icons
+(https://aws.amazon.com/architecture/icons/), © Amazon Web Services, Inc. or its
+affiliates, provided by AWS for use in architecture diagrams under the terms
+published on that page. AWS and the AWS service names are trademarks of Amazon.com,
+Inc. or its affiliates; the icons are redistributed unmodified and their inclusion
+does not imply endorsement by AWS.
