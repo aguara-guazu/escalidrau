@@ -23,15 +23,71 @@ type ServerRequest = {
     | "view_canvas"
     | "render_library"
     | "add_library_item"
-    | "connect_elements";
+    | "connect_elements"
+    | "set_canvas_style";
   payload: Record<string, unknown>;
 };
+
+export type ConnectorPreset = "sketch" | "clean" | "formal";
+export type ConnectorRoute = "straight" | "elbow" | "curve";
+export type Font = "hand" | "classic" | "normal" | "formal" | "display" | "code";
+export type CanvasStyle = { preset: ConnectorPreset; route: ConnectorRoute; font: Font };
+
+// Excalidraw's registered font families (its FONT_FAMILY ids); all bundled
+// except Helvetica, which uses the system face and Liberation Sans in exports.
+export const FONT_FAMILIES: Record<Font, number> = {
+  hand: 5,
+  classic: 1,
+  normal: 6,
+  formal: 2,
+  display: 7,
+  code: 8
+};
+
+const fontFamilyOf = (style: CanvasStyle) => FONT_FAMILIES[style.font] ?? FONT_FAMILIES.hand;
+
+type Arrowhead = "arrow" | "triangle" | "bar" | "dot" | null;
+
+// Rendering parameters behind each preset name (descriptions live server-side
+// in server/src/settings.ts). "round" is the roundness of bends and corners;
+// curves are always smooth regardless of it. Shapes take the same stroke plus
+// the fill style.
+export const PRESET_PROPS: Record<
+  ConnectorPreset,
+  {
+    roughness: number;
+    strokeWidth: number;
+    round: boolean;
+    arrowhead: Arrowhead;
+    fillStyle: "hachure" | "cross-hatch" | "solid";
+  }
+> = {
+  sketch: { roughness: 1, strokeWidth: 2, round: true, arrowhead: "arrow", fillStyle: "hachure" },
+  clean: { roughness: 0, strokeWidth: 2, round: true, arrowhead: "arrow", fillStyle: "solid" },
+  formal: { roughness: 0, strokeWidth: 1, round: false, arrowhead: "triangle", fillStyle: "solid" }
+};
+
+const SHAPE_TYPES = new Set(["rectangle", "ellipse", "diamond"]);
+
+// Excalidraw rounds rectangles with an adaptive radius and diamonds with a
+// proportional one; ellipses have no corners.
+const shapeRoundness = (type: string, round: boolean) =>
+  !round || type === "ellipse" ? null : type === "rectangle" ? { type: 3 } : { type: 2 };
+
+export const DEFAULT_CANVAS_STYLE: CanvasStyle = { preset: "sketch", route: "straight", font: "hand" };
+
+const ROUND_BENDS = { type: 2 };
+
+// Default heads that a restyle may swap; anything else (bar, dot, none...)
+// carries meaning and is left alone.
+const SWAPPABLE_HEADS = new Set(["arrow", "triangle"]);
 
 type Connection = {
   from: string;
   to: string;
   label?: string;
-  route?: "straight" | "elbow";
+  route?: ConnectorRoute;
+  style?: ConnectorPreset;
   strokeColor?: string;
   strokeStyle?: "solid" | "dashed" | "dotted";
   startArrowhead?: "arrow" | "triangle" | "bar" | "dot" | "none";
@@ -52,6 +108,43 @@ const boxOf = (elements: AnyElement[]): Box => {
 };
 
 const centerOf = (box: Box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+
+type Point = { x: number; y: number };
+
+const containsPoint = (box: Box, point: Point) =>
+  point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height;
+
+// Axis-aligned segment against a box inflated by a small margin.
+const segmentHitsBox = (a: Point, b: Point, box: Box, margin = 6) => {
+  const left = box.x - margin;
+  const right = box.x + box.width + margin;
+  const top = box.y - margin;
+  const bottom = box.y + box.height + margin;
+  if (Math.abs(a.y - b.y) < 0.5) {
+    return a.y >= top && a.y <= bottom && Math.max(a.x, b.x) >= left && Math.min(a.x, b.x) <= right;
+  }
+  if (Math.abs(a.x - b.x) < 0.5) {
+    return a.x >= left && a.x <= right && Math.max(a.y, b.y) >= top && Math.min(a.y, b.y) <= bottom;
+  }
+  return false;
+};
+
+// What a connector should not run through: icons, shapes and free text —
+// except the endpoints themselves, their labels, connectors, and containers
+// (group boxes) holding either endpoint, whose borders are crossed on purpose.
+const obstacleBoxes = (alive: AnyElement[], skip: Set<string>, sc: Point, tc: Point): Box[] =>
+  alive
+    .filter((element) => {
+      if (skip.has(element.id) || ["arrow", "line", "freedraw"].includes(element.type)) {
+        return false;
+      }
+      if (element.type === "text" && element.containerId) {
+        return false;
+      }
+      const box = { x: element.x, y: element.y, width: element.width, height: element.height };
+      return !containsPoint(box, sc) && !containsPoint(box, tc);
+    })
+    .map((element) => ({ x: element.x, y: element.y, width: element.width, height: element.height }));
 
 // Distance from a point outside an axis-aligned box to its border (0 inside).
 const distanceToBox = (point: { x: number; y: number }, box: Box) => {
@@ -271,7 +364,10 @@ export class SyncClient {
   private async handleRequest(request: ServerRequest): Promise<unknown> {
     switch (request.action) {
       case "add_elements":
-        return this.addElements(request.payload.elements as Record<string, unknown>[]);
+        return this.addElements(
+          request.payload.elements as Record<string, unknown>[],
+          (request.payload.style as CanvasStyle | undefined) ?? DEFAULT_CANVAS_STYLE
+        );
       case "update_elements":
         return this.updateElements(
           request.payload.updates as Array<{ id: string } & Record<string, unknown>>
@@ -307,10 +403,21 @@ export class SyncClient {
             x: number;
             y: number;
             label?: string;
+            style?: CanvasStyle;
           }
         );
       case "connect_elements":
-        return this.connectElements(request.payload.connections as Connection[]);
+        return this.connectElements(
+          request.payload.connections as Connection[],
+          (request.payload.style as CanvasStyle | undefined) ?? DEFAULT_CANVAS_STYLE
+        );
+      case "set_canvas_style":
+        return {
+          restyled: this.applyCanvasStyle(
+            (request.payload.style as CanvasStyle | undefined) ?? DEFAULT_CANVAS_STYLE,
+            Boolean(request.payload.applyToExisting)
+          )
+        };
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -320,10 +427,41 @@ export class SyncClient {
     }
   }
 
-  private addElements(skeletons: Record<string, unknown>[]) {
+  private addElements(skeletons: Record<string, unknown>[], style: CanvasStyle) {
+    const props = PRESET_PROPS[style.preset] ?? PRESET_PROPS.sketch;
+    const fontFamily = fontFamilyOf(style);
+    const styled = skeletons.map((skeleton) => {
+      if (skeleton.type === "text") {
+        return { fontFamily, ...skeleton };
+      }
+      const label = skeleton.label as Record<string, unknown> | undefined;
+      const withLabel = label ? { ...skeleton, label: { fontFamily, ...label } } : skeleton;
+      if (SHAPE_TYPES.has(skeleton.type as string)) {
+        return {
+          roughness: props.roughness,
+          strokeWidth: props.strokeWidth,
+          roundness: shapeRoundness(skeleton.type as string, props.round),
+          fillStyle: props.fillStyle,
+          ...withLabel
+        };
+      }
+      if (skeleton.type !== "arrow" && skeleton.type !== "line") {
+        return withLabel;
+      }
+      skeleton = withLabel;
+      const points = skeleton.points as number[][] | undefined;
+      const bends = Array.isArray(points) && points.length > 2;
+      return {
+        roughness: props.roughness,
+        strokeWidth: props.strokeWidth,
+        roundness: bends && props.round ? ROUND_BENDS : null,
+        ...(skeleton.type === "arrow" ? { endArrowhead: props.arrowhead } : {}),
+        ...skeleton
+      };
+    });
     // regenerateIds: false lets the agent assign stable ids it can reference later.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const converted = convertToExcalidrawElements(skeletons as any, {
+    const converted = convertToExcalidrawElements(styled as any, {
       regenerateIds: false
     });
     const routed = this.routeBoundArrows(converted);
@@ -728,7 +866,9 @@ export class SyncClient {
     x: number;
     y: number;
     label?: string;
+    style?: CanvasStyle;
   }) {
+    const fontFamily = fontFamilyOf(payload.style ?? DEFAULT_CANVAS_STYLE);
     const cloned = cloneLibraryElements(payload.elements as AnyElement[]) as AnyElement[];
     const shapes = cloned.filter((element) => element.type !== "text");
     const anchor =
@@ -747,17 +887,21 @@ export class SyncClient {
       x: (element.x as number) + dx,
       y: (element.y as number) + dy
     }));
-    if (payload.label !== undefined) {
-      const labels = placed.filter((element) => element.type === "text" && !element.containerId);
-      if (labels.length > 0) {
+    // Labels are rebuilt (re-measured) when their text or font changes.
+    const labels = placed.filter((element) => element.type === "text" && !element.containerId);
+    const needsRebuild =
+      labels.length > 0 &&
+      (payload.label !== undefined || labels.some((label) => label.fontFamily !== fontFamily));
+    if (needsRebuild) {
+      {
         const template = labels[0];
         const replacement = convertToExcalidrawElements(
           [
             {
               type: "text",
-              text: payload.label,
+              text: payload.label ?? template.text,
               fontSize: template.fontSize,
-              fontFamily: template.fontFamily,
+              fontFamily,
               textAlign: template.textAlign,
               strokeColor: template.strokeColor,
               x:
@@ -828,10 +972,10 @@ export class SyncClient {
       width: icon.width,
       height: item.height
     };
-    return { icon, item, column };
+    return { icon, item, column, labelIds: labels.map((label) => label.id) };
   }
 
-  private connectElements(connections: Connection[]) {
+  private connectElements(connections: Connection[], style: CanvasStyle) {
     const alive = this.api
       .getSceneElementsIncludingDeleted()
       .filter((element) => !element.isDeleted) as unknown as AnyElement[];
@@ -856,48 +1000,94 @@ export class SyncClient {
       const dy = tc.y - sc.y;
       const horizontal = Math.abs(dx) >= Math.abs(dy);
       const aligned = horizontal ? Math.abs(dy) < 1 : Math.abs(dx) < 1;
+      const props = PRESET_PROPS[connection.style ?? style.preset] ?? PRESET_PROPS.sketch;
+      const route = aligned ? "straight" : connection.route ?? style.route;
       let start: { x: number; y: number };
       let end: { x: number; y: number };
-      let corner: { x: number; y: number } | null = null;
-      if (connection.route === "elbow" && !aligned) {
+      let bends: Array<{ x: number; y: number }> = [];
+      if (route === "straight") {
         if (horizontal) {
-          start = { x: dx >= 0 ? s.icon.x + s.icon.width + pad : s.icon.x - pad, y: sc.y };
-          end = { x: tc.x, y: dy >= 0 ? t.icon.y - pad : t.item.y + t.item.height + pad };
-          corner = { x: end.x, y: start.y };
+          start = borderPoint(s.icon, tc, pad);
+          end = borderPoint(t.icon, sc, pad);
         } else {
-          start = { x: sc.x, y: dy >= 0 ? s.item.y + s.item.height + pad : s.icon.y - pad };
-          end = { x: dx >= 0 ? t.icon.x - pad : t.icon.x + t.icon.width + pad, y: tc.y };
-          corner = { x: start.x, y: end.y };
+          start = borderPoint(s.column, tc, pad);
+          end = borderPoint(t.column, sc, pad);
         }
-      } else if (horizontal) {
-        start = borderPoint(s.icon, tc, pad);
-        end = borderPoint(t.icon, sc, pad);
       } else {
-        start = borderPoint(s.column, tc, pad);
-        end = borderPoint(t.column, sc, pad);
+        // Bent routes exist in two orders: leave sideways then turn, or leave
+        // vertically then turn. Both are built and the one running through
+        // fewer icons, shapes and labels wins (ties keep the natural order:
+        // sideways first when the target is mostly to the side).
+        const sideOut = { x: dx >= 0 ? s.icon.x + s.icon.width + pad : s.icon.x - pad, y: sc.y };
+        const sideIn = { x: dx >= 0 ? t.icon.x - pad : t.icon.x + t.icon.width + pad, y: tc.y };
+        const verticalOut = { x: sc.x, y: dy >= 0 ? s.item.y + s.item.height + pad : s.icon.y - pad };
+        const verticalIn = { x: tc.x, y: dy >= 0 ? t.icon.y - pad : t.item.y + t.item.height + pad };
+        const paths = {
+          h:
+            route === "curve" && horizontal
+              ? {
+                  start: sideOut,
+                  end: sideIn,
+                  bends: [
+                    { x: (sideOut.x + sideIn.x) / 2, y: sideOut.y },
+                    { x: (sideOut.x + sideIn.x) / 2, y: sideIn.y }
+                  ]
+                }
+              : { start: sideOut, end: verticalIn, bends: [{ x: verticalIn.x, y: sideOut.y }] },
+          v:
+            route === "curve" && !horizontal
+              ? {
+                  start: verticalOut,
+                  end: verticalIn,
+                  bends: [
+                    { x: verticalOut.x, y: (verticalOut.y + verticalIn.y) / 2 },
+                    { x: verticalIn.x, y: (verticalOut.y + verticalIn.y) / 2 }
+                  ]
+                }
+              : { start: verticalOut, end: sideIn, bends: [{ x: verticalOut.x, y: sideIn.y }] }
+        };
+        const obstacles = obstacleBoxes(alive, new Set([source.id, target.id, ...s.labelIds, ...t.labelIds]), sc, tc);
+        const crossings = (path: { start: Point; end: Point; bends: Point[] }) => {
+          const nodes = [path.start, ...path.bends, path.end];
+          let count = 0;
+          for (let index = 1; index < nodes.length; index += 1) {
+            for (const obstacle of obstacles) {
+              if (segmentHitsBox(nodes[index - 1], nodes[index], obstacle)) {
+                count += 1;
+              }
+            }
+          }
+          return count;
+        };
+        const natural = horizontal ? "h" : "v";
+        const flipped = horizontal ? "v" : "h";
+        const chosen = crossings(paths[flipped]) < crossings(paths[natural]) ? paths[flipped] : paths[natural];
+        start = chosen.start;
+        end = chosen.end;
+        bends = chosen.bends;
       }
-      const points = corner
-        ? [
-            [0, 0],
-            [corner.x - start.x, corner.y - start.y],
-            [end.x - start.x, end.y - start.y]
-          ]
-        : [
-            [0, 0],
-            [end.x - start.x, end.y - start.y]
-          ];
-      const arrowhead = (value: Connection["endArrowhead"], fallback: string | null) =>
+      const points = [
+        [0, 0],
+        ...bends.map((bend) => [bend.x - start.x, bend.y - start.y]),
+        [end.x - start.x, end.y - start.y]
+      ];
+      const arrowhead = (value: Connection["endArrowhead"], fallback: Arrowhead) =>
         value === undefined ? fallback : value === "none" ? null : value;
       const skeleton: Record<string, unknown> = {
         type: "arrow",
         x: start.x,
         y: start.y,
         points,
+        roughness: props.roughness,
+        strokeWidth: props.strokeWidth,
+        roundness: route === "curve" || (bends.length > 0 && props.round) ? ROUND_BENDS : null,
         strokeColor: connection.strokeColor ?? "#1e1e1e",
         strokeStyle: connection.strokeStyle ?? "solid",
         startArrowhead: arrowhead(connection.startArrowhead, null),
-        endArrowhead: arrowhead(connection.endArrowhead, "arrow"),
-        ...(connection.label ? { label: { text: connection.label, fontSize: 16 } } : {})
+        endArrowhead: arrowhead(connection.endArrowhead, props.arrowhead),
+        ...(connection.label
+          ? { label: { text: connection.label, fontSize: 16, fontFamily: fontFamilyOf(style) } }
+          : {})
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const converted = convertToExcalidrawElements([skeleton] as any, {
@@ -948,6 +1138,180 @@ export class SyncClient {
       captureUpdate: CaptureUpdateAction.IMMEDIATELY
     });
     return { connected, missingIds };
+  }
+
+  /**
+   * Makes the style the toolbar default, so what the person draws next comes
+   * out the same way as the agent's connectors: sloppiness, stroke width,
+   * arrow type (sharp / round / elbow), arrowhead and edge roundness. The
+   * editor keeps a single set of defaults, so shapes follow the sloppiness
+   * and edge choice as well.
+   */
+  applyCanvasStyle(style: CanvasStyle, applyToExisting: boolean): number {
+    const props = PRESET_PROPS[style.preset] ?? PRESET_PROPS.sketch;
+    this.api.updateScene({
+      appState: {
+        currentItemRoughness: props.roughness,
+        currentItemStrokeWidth: props.strokeWidth,
+        currentItemArrowType: style.route === "curve" ? "round" : style.route === "elbow" ? "elbow" : "sharp",
+        currentItemEndArrowhead: props.arrowhead,
+        currentItemRoundness: props.round ? "round" : "sharp",
+        currentItemFillStyle: props.fillStyle,
+        currentItemFontFamily: fontFamilyOf(style)
+      }
+    });
+    return applyToExisting
+      ? this.restyleConnectors(style) + this.restyleShapes(style) + this.restyleText(style)
+      : 0;
+  }
+
+  /**
+   * Re-applies the preset's stroke, corners and fill to plain shapes. Shapes
+   * grouped with an image belong to a placed library item (a group box or a
+   * hand-drawn icon) and keep their own look.
+   */
+  restyleShapes(style: CanvasStyle): number {
+    const props = PRESET_PROPS[style.preset] ?? PRESET_PROPS.sketch;
+    const alive = this.api.getSceneElementsIncludingDeleted().filter((element) => !element.isDeleted);
+    const imageGroups = new Set(
+      alive
+        .filter((element) => element.type === "image")
+        .flatMap((element) => (element.groupIds as string[] | undefined) ?? [])
+    );
+    let restyled = 0;
+    const elements = this.api.getSceneElementsIncludingDeleted().map((element) => {
+      if (element.isDeleted || !SHAPE_TYPES.has(element.type)) {
+        return element;
+      }
+      if (((element.groupIds as string[] | undefined) ?? []).some((groupId) => imageGroups.has(groupId))) {
+        return element;
+      }
+      const el = element as unknown as AnyElement;
+      restyled += 1;
+      return {
+        ...el,
+        roughness: props.roughness,
+        strokeWidth: props.strokeWidth,
+        roundness: shapeRoundness(el.type as string, props.round),
+        fillStyle: props.fillStyle,
+        version: (el.version as number) + 1,
+        versionNonce: randomNonce()
+      };
+    });
+    if (restyled > 0) {
+      this.api.updateScene({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        elements: elements as any,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY
+      });
+    }
+    return restyled;
+  }
+
+  /**
+   * Switches every text element to the style's font, re-measuring it so its
+   * box fits: standalone text keeps its alignment anchor, text bound to a
+   * shape or arrow is re-centred in its container.
+   */
+  restyleText(style: CanvasStyle): number {
+    const fontFamily = fontFamilyOf(style);
+    const alive = this.api.getSceneElementsIncludingDeleted();
+    const byId = new Map(alive.map((element) => [element.id, element as unknown as AnyElement]));
+    let restyled = 0;
+    const elements = alive.map((element) => {
+      if (element.isDeleted || element.type !== "text") {
+        return element;
+      }
+      const el = element as unknown as AnyElement;
+      if (el.fontFamily === fontFamily) {
+        return element;
+      }
+      const [measured] = convertToExcalidrawElements(
+        [
+          {
+            type: "text",
+            text: el.text,
+            fontSize: el.fontSize,
+            fontFamily,
+            textAlign: el.textAlign,
+            lineHeight: el.lineHeight
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ] as any
+      ) as unknown as AnyElement[];
+      const width = measured.width as number;
+      const height = measured.height as number;
+      let x = el.x as number;
+      let y = el.y as number;
+      const container = el.containerId ? byId.get(el.containerId) : undefined;
+      if (container && container.type !== "arrow") {
+        x = (container.x as number) + ((container.width as number) - width) / 2;
+        y = (container.y as number) + ((container.height as number) - height) / 2;
+      } else if (el.textAlign === "center") {
+        x += ((el.width as number) - width) / 2;
+      } else if (el.textAlign === "right") {
+        x += (el.width as number) - width;
+      }
+      restyled += 1;
+      return {
+        ...el,
+        fontFamily,
+        x,
+        y,
+        width,
+        height,
+        version: (el.version as number) + 1,
+        versionNonce: randomNonce()
+      };
+    });
+    if (restyled > 0) {
+      this.api.updateScene({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        elements: elements as any,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY
+      });
+    }
+    return restyled;
+  }
+
+  /**
+   * Re-applies a connector preset to every arrow and line on the canvas.
+   * Bends keep their smoothness (curves with several bends stay smooth even
+   * under a sharp preset); only default arrowheads are swapped.
+   */
+  restyleConnectors(style: CanvasStyle): number {
+    const props = PRESET_PROPS[style.preset] ?? PRESET_PROPS.sketch;
+    let restyled = 0;
+    const elements = this.api.getSceneElementsIncludingDeleted().map((element) => {
+      if (element.isDeleted || (element.type !== "arrow" && element.type !== "line")) {
+        return element;
+      }
+      const el = element as unknown as AnyElement;
+      const bendCount = Math.max(0, ((el.points as number[][] | undefined)?.length ?? 2) - 2);
+      const roundness = bendCount >= 2 || (bendCount === 1 && props.round) ? ROUND_BENDS : null;
+      const swapHead = (head: unknown) =>
+        typeof head === "string" && SWAPPABLE_HEADS.has(head) ? props.arrowhead : head;
+      restyled += 1;
+      return {
+        ...el,
+        roughness: props.roughness,
+        strokeWidth: props.strokeWidth,
+        roundness,
+        ...(el.type === "arrow"
+          ? { startArrowhead: swapHead(el.startArrowhead), endArrowhead: swapHead(el.endArrowhead) }
+          : {}),
+        version: (el.version as number) + 1,
+        versionNonce: randomNonce()
+      };
+    });
+    if (restyled > 0) {
+      this.api.updateScene({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        elements: elements as any,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY
+      });
+    }
+    return restyled;
   }
 
   // Agent-facing render: fits the longest side to ~1600px so text stays

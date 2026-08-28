@@ -20,8 +20,10 @@ import { JamButton } from "./JamButton";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { MermaidDialog } from "./MermaidDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { StyleDialog } from "./StyleDialog";
+import { WelcomeHint } from "./WelcomeHint";
 import { LibraryFolders } from "./LibraryFolders";
-import { copyIcon, folderIcon, importIcon, libraryIcon, trashIcon } from "./icons";
+import { copyIcon, folderIcon, importIcon, libraryIcon, routeIcon, trashIcon } from "./icons";
 import {
   bundledFiles,
   installBundledPack,
@@ -73,6 +75,11 @@ export default function App() {
   const [mermaidBusy, setMermaidBusy] = useState(false);
   const [mermaidError, setMermaidError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  // Hints for the app's own top-right controls, shown alongside the editor's
+  // welcome screen: empty canvas, nothing open on top of it.
+  const [showHints, setShowHints] = useState(true);
+  const showHintsRef = useRef(true);
   const [dropped, setDropped] = useState<DroppedFile | null>(null);
   const collabRef = useRef<CollabClient | null>(null);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
@@ -136,6 +143,22 @@ export default function App() {
     }
     if (!syncRef.current) {
       syncRef.current = new SyncClient(api);
+      const sync = syncRef.current;
+      void fetch("/settings")
+        .then((response) => (response.ok ? response.json() : null))
+        .then((settings) => {
+          if (settings?.connectors && settings?.text) {
+            sync.applyCanvasStyle(
+              {
+                preset: settings.connectors.preset,
+                route: settings.connectors.route,
+                font: settings.text.font
+              },
+              false
+            );
+          }
+        })
+        .catch(() => undefined);
     }
     if (!collabRef.current) {
       const collab = new CollabClient(api);
@@ -326,9 +349,20 @@ export default function App() {
     <div style={{ height: "100%", width: "100%" }}>
       <Excalidraw
         excalidrawAPI={handleApi}
-        onChange={() => {
+        onChange={(elements, appState) => {
           syncRef.current?.onLocalChange();
           collabRef.current?.onLocalChange();
+          // Same rule as the editor's welcome screen (which stays hidden once
+          // something was drawn), plus nothing open on top of the canvas.
+          const visible =
+            appState.showWelcomeScreen &&
+            !elements.some((element) => !element.isDeleted) &&
+            appState.openSidebar === null &&
+            appState.openDialog === null;
+          if (visible !== showHintsRef.current) {
+            showHintsRef.current = visible;
+            setShowHints(visible);
+          }
         }}
         initialData={initialData}
         onLibraryChange={persistLibrary}
@@ -336,7 +370,22 @@ export default function App() {
         isCollaborating={roomInfo !== null}
         onPointerUpdate={(payload) => collabRef.current?.handlePointer(payload)}
         renderTopRightUI={() => (
-          <JamButton
+          <>
+            <div className="esc-ui esc-hint-anchor">
+              <button
+                className="esc-btn esc-btn--top esc-btn--icon"
+                title="Canvas style: strokes, arrows and font"
+                aria-label="Canvas style"
+                onClick={() => setStyleOpen(true)}
+              >
+                {routeIcon}
+              </button>
+              {showHints ? (
+                <WelcomeHint variant="beside">Set the look: strokes, arrows & font</WelcomeHint>
+              ) : null}
+            </div>
+            <div className="esc-ui esc-hint-anchor">
+              <JamButton
             active={roomInfo !== null}
             code={roomInfo?.code ?? null}
             members={roomInfo?.members.length ?? 0}
@@ -352,7 +401,12 @@ export default function App() {
               collabRef.current?.leave();
               apiRef.current?.setToast({ message: "You left the jam", duration: 2000 });
             }}
-          />
+              />
+              {showHints && roomInfo === null ? (
+                <WelcomeHint variant="below">Draw live with other people</WelcomeHint>
+              ) : null}
+            </div>
+          </>
         )}
       >
         <MainMenu>
@@ -407,6 +461,20 @@ export default function App() {
         onClose={() => {
           setMermaidOpen(false);
           setMermaidError(null);
+        }}
+      />
+      <StyleDialog
+        open={styleOpen}
+        onClose={() => setStyleOpen(false)}
+        onApply={(style, applyToExisting) =>
+          syncRef.current?.applyCanvasStyle(style, applyToExisting) ?? 0
+        }
+        onSaved={(style, restyled) => {
+          setStyleOpen(false);
+          apiRef.current?.setToast({
+            message: `Canvas style: ${style.preset} strokes, ${style.route} arrows, ${style.font} font${restyled > 0 ? ` — ${restyled} element${restyled === 1 ? "" : "s"} restyled` : ""}`,
+            duration: 3000
+          });
         }}
       />
       <ConfirmDialog

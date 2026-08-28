@@ -31,6 +31,14 @@ const bundledScript = (name: string) =>
     ? join(process.resourcesPath, name)
     : join(app.getAppPath(), "dist", name);
 
+// Where installed skills link to: the copy the app stages in its data
+// directory on every launch (see stageSkill in installers.ts). In development
+// it is the repo's directory, so edits reach agents without a restart.
+export const skillSource = () =>
+  app.isPackaged
+    ? join(app.getPath("userData"), "skills", "escalidrau")
+    : join(app.getAppPath(), "..", "skills", "escalidrau");
+
 // Stdio-only clients spawn the app's own binary in Node mode running the
 // bundled relay, so the integration works without Node installed.
 const bridgeConfig = (mcpUrl: string): BridgeConfig => ({
@@ -49,7 +57,7 @@ const CLIENTS: ClientDefinition[] = [
   {
     name: "Claude Code",
     status: claudeCodeStatus,
-    add: addToClaudeCode
+    add: (mcpUrl) => addToClaudeCode(mcpUrl, skillSource())
   },
   {
     name: "Claude Desktop",
@@ -60,7 +68,7 @@ const CLIENTS: ClientDefinition[] = [
   {
     name: "Codex",
     status: codexStatus,
-    add: (mcpUrl) => addToCodex(bridgeConfig(mcpUrl)),
+    add: (mcpUrl) => addToCodex(bridgeConfig(mcpUrl), skillSource()),
     postInstallNote: "New Codex sessions will pick it up."
   },
   {
@@ -74,16 +82,16 @@ const CLIENTS: ClientDefinition[] = [
   {
     name: "Claude Code skill",
     status: () => claudeCodeSkillStatus(),
-    add: () => installClaudeCodeSkill(),
+    add: () => installClaudeCodeSkill(skillSource()),
     addLabel: "Install the Escalidrau skill for Claude Code (how to draw well here)…",
-    postInstallNote: "Claude Code picks up the skill in its current session; it is kept up to date with the app."
+    postInstallNote: "Installed as a link to the app's copy, so it follows every update. Claude Code picks it up in its current session."
   },
   {
     name: "Codex skill",
     status: () => codexSkillStatus(),
-    add: () => installCodexSkill(),
+    add: () => installCodexSkill(skillSource()),
     addLabel: "Install the Escalidrau skill for Codex (how to draw well here)…",
-    postInstallNote: "Restart Codex to load the skill; it is kept up to date with the app."
+    postInstallNote: "Installed as a link to the app's copy, so it follows every update. Restart Codex to load it."
   }
 ];
 

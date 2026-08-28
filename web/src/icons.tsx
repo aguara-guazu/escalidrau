@@ -60,3 +60,11 @@ export const libraryIcon = (
     <path d="M16 16l3.923 -.98" />
   </svg>
 );
+
+export const routeIcon = (
+  <svg {...iconProps}>
+    <circle cx="6" cy="19" r="2" />
+    <circle cx="18" cy="5" r="2" />
+    <path d="M12 19h4.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h3.5" />
+  </svg>
+);

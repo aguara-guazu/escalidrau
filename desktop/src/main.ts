@@ -6,7 +6,8 @@ import { startApp, type AppHandle } from "../../server/src/app.js";
 import { rebuildMenu } from "./menu.js";
 import { Splash } from "./splash.js";
 import { AppState } from "./state.js";
-import { refreshInstalledSkills } from "./installers.js";
+import { refreshInstalledSkills, stageSkill } from "./installers.js";
+import { skillSource } from "./menu.js";
 import {
   canSelfInstall,
   cleanupLeftovers,
@@ -190,6 +191,9 @@ if (!gotLock) {
           return;
         }
         forceClose = true;
+        // Saved or discarded either way: the scene must not come back when a
+        // new window opens (on macOS the process outlives its window).
+        appHandle?.resetScene();
         // destroy() skips re-emitting "close"; quit() must be deferred out of
         // the aborted quit cycle or Electron swallows it.
         window.destroy();
@@ -247,8 +251,12 @@ if (!gotLock) {
     mkdirSync(dataDir, { recursive: true });
     const state = new AppState(dataDir);
     await state.load();
-    // Installed agent skills follow the bundled copy across updates.
-    await refreshInstalledSkills().catch(() => undefined);
+    // This build's skill is staged in the data directory and every installed
+    // copy is re-pointed at it, so an update propagates to agents by itself.
+    if (app.isPackaged) {
+      await stageSkill(skillSource()).catch(() => undefined);
+    }
+    await refreshInstalledSkills(skillSource()).catch(() => undefined);
 
     if (app.isPackaged && canSelfInstall) {
       await cleanupLeftovers(bundlePath());

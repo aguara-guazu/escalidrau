@@ -68,6 +68,9 @@ export default defineConfig({
       },
       "/whatsnew": {
         target: "http://localhost:3580"
+      },
+      "/settings": {
+        target: "http://localhost:3580"
       }
     }
   },

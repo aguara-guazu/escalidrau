@@ -13,6 +13,7 @@ import { SceneStore } from "./scene.js";
 import { CanvasBridge } from "./bridge.js";
 import { ChangeTracker } from "./changes.js";
 import { createSessionServer } from "./mcp.js";
+import { normalizeSettings, type Settings } from "./settings.js";
 import { sceneToMermaid } from "./mermaid.js";
 
 export type AppOptions = {
@@ -34,6 +35,7 @@ export type AppHandle = {
   mcpUrl: string;
   hasContent: () => boolean;
   exportScene: () => Promise<string>;
+  resetScene: () => void;
   close: () => Promise<void>;
 };
 
@@ -81,6 +83,18 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
   const libraryPath = join(dataDir, "library.json");
   // Versions of the bundled icon packs already installed into the library.
   const packsPath = join(dataDir, "library-packs.json");
+  // Canvas-wide preferences shared by the UI and the MCP tools.
+  const settingsPath = join(dataDir, "settings.json");
+  const readSettings = async (): Promise<Settings> => {
+    try {
+      return normalizeSettings(JSON.parse(await readFile(settingsPath, "utf8")));
+    } catch {
+      return normalizeSettings(null);
+    }
+  };
+  const writeSettings = async (next: Settings) => {
+    await writeFile(settingsPath, JSON.stringify(next), "utf8");
+  };
 
   const store = new SceneStore();
   const tracker = new ChangeTracker();
@@ -94,8 +108,15 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
       await existing.handleRequest(request, response);
       return;
     }
+    if (sessionId) {
+      // A session this process never issued — typically one opened against a
+      // previous run of the app. The spec's 404 tells clients to start a new
+      // session, so agents recover from an update or restart on their own.
+      sendJson(response, 404, { error: "Session not found" });
+      return;
+    }
     if (request.method !== "POST") {
-      sendJson(response, 400, { error: "Unknown or missing mcp-session-id" });
+      sendJson(response, 400, { error: "Missing mcp-session-id" });
       return;
     }
     let body: unknown;
@@ -127,6 +148,8 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
       bridge,
       tracker,
       canvasUrl,
+      readSettings,
+      writeSettings,
       readLibrary: async () => {
         try {
           const parsed = JSON.parse(await readFile(libraryPath, "utf8")) as unknown;
@@ -206,6 +229,28 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
     response.end();
   };
 
+  const handleSettings = async (request: IncomingMessage, response: ServerResponse) => {
+    if (request.method === "GET") {
+      sendJson(response, 200, await readSettings());
+      return;
+    }
+    if (request.method === "PUT") {
+      let body: unknown;
+      try {
+        body = await readJsonBody(request);
+      } catch {
+        sendJson(response, 400, { error: "Invalid JSON body" });
+        return;
+      }
+      const next = normalizeSettings(body);
+      await writeSettings(next);
+      sendJson(response, 200, next);
+      return;
+    }
+    response.writeHead(405);
+    response.end();
+  };
+
   const handleLibraryPacks = async (request: IncomingMessage, response: ServerResponse) => {
     if (request.method === "GET") {
       try {
@@ -263,6 +308,14 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
         return;
       }
       sendJson(response, 200, options.whatsNew?.get() ?? null);
+      return;
+    }
+    if (urlPath === "/settings") {
+      void handleSettings(request, response).catch(() => {
+        if (!response.headersSent) {
+          sendJson(response, 500, { error: "Internal error" });
+        }
+      });
       return;
     }
     if (urlPath === "/library/packs") {
@@ -334,6 +387,7 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
       const result = (await bridge.request("export_scene", {}, 15_000)) as { json: string };
       return result.json;
     },
+    resetScene: () => bridge.reset(),
     close: async () => {
       for (const transport of transports.values()) {
         await transport.close();

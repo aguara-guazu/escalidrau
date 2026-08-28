@@ -46,6 +46,22 @@ export class CanvasBridge {
     socket.on("error", () => this.clients.delete(socket));
   }
 
+  /**
+   * Empties the canonical scene and tells every connected canvas to reset.
+   * Used when the window closes: the scene lives only in this process, and
+   * the person chose to save or discard it, so a new window starts blank.
+   */
+  reset() {
+    this.store.replace([]);
+    this.tracker.record([], "user");
+    const message = JSON.stringify({ type: "reset" });
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+
   request(action: string, payload: unknown, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
     const client = this.clients.values().next().value as WebSocket | undefined;
     if (!client || client.readyState !== WebSocket.OPEN) {

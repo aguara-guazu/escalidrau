@@ -10,6 +10,17 @@ import type { SceneStore } from "./scene.js";
 import type { ChangeTracker } from "./changes.js";
 import { buildLayout, partElementIds } from "./layout.js";
 import { sceneToMermaid } from "./mermaid.js";
+import {
+  CONNECTOR_PRESETS,
+  CONNECTOR_ROUTES,
+  FONTS,
+  FONT_DESCRIPTIONS,
+  PRESET_DESCRIPTIONS,
+  ROUTE_DESCRIPTIONS,
+  canvasStyle,
+  normalizeSettings,
+  type Settings
+} from "./settings.js";
 
 const elementSkeleton = z.record(z.unknown());
 const elementUpdate = z.object({ id: z.string() }).passthrough();
@@ -32,6 +43,7 @@ Example:
  {"type":"arrow","x":280,"y":135,"start":{"id":"api"},"end":{"id":"db"}}]
 
 Size shapes to their text (default font ~= 11px per character): usable width is width - 30px for rectangles, 70% of width for ellipses, 50% for diamonds — the longest unbreakable word must fit or it breaks mid-word. Leave ~12px per label character of gap between shapes joined by a labeled arrow.
+Shapes, arrows, lines and text take the canvas style (see get_canvas_style: stroke preset and font) unless the skeleton sets roughness, strokeWidth, roundness, fillStyle, arrowheads or fontFamily itself.
 After a batch of edits, call view_canvas to visually verify the result.`;
 
 export type SessionContext = {
@@ -40,6 +52,8 @@ export type SessionContext = {
   tracker: ChangeTracker;
   canvasUrl: string;
   readLibrary: () => Promise<unknown[]>;
+  readSettings: () => Promise<Settings>;
+  writeSettings: (next: Settings) => Promise<void>;
 };
 
 type StoredLibraryItem = {
@@ -125,6 +139,8 @@ SIZING RULES (default font ~= 11px of width per character):
 - Resizing an existing shape does NOT re-wrap its label; delete and re-add the shape with the right size instead.
 - Between shapes connected by a labeled arrow, leave a gap of at least 12px per label character.
 
+CANVAS STYLE: shapes, arrows, lines and text follow a canvas-wide style (get_canvas_style / set_canvas_style): stroke preset "sketch" (hand-drawn, the default), "clean" (straight strokes, rounded bends) or "formal" (thin straight strokes, sharp bends, filled triangle heads); default route ("straight", "elbow", "curve"); and font ("hand" Excalifont, "classic" Virgil, "normal" Nunito, "formal" Helvetica, "display" Lilita One, "code" Comic Shanns). Before the first diagram on an empty canvas ask the person in one line which look they want (stroke, arrows, font) unless they already said; then set it once. When they ask for a formal, sober, clean or presentation-ready look set preset and font accordingly (with applyToExisting when the canvas has content); keep one style per canvas and do not mix.
+
 LAYOUT RULES for icon diagrams: plan a grid first and put connected items on the same row or column; icon centres at least 220px apart horizontally (200px for 48px resource icons) and 170px vertically so labels never touch; place group boxes before their contents and size them from the contents (60px top margin, 30px sides and bottom); connect existing items only with connect_elements (bound, centre-line arrows). The "escalidrau" skill installed with the MCP server (app menu MCP) spells out the whole method.
 
 The library is organized in folders. The official AWS Architecture Icons are installed by default under "AWS Architecture Icons": Services/<category> (EC2, Lambda, S3, DynamoDB, ...), Resources/<category> (S3 bucket, Lambda function, VPC NAT gateway, IAM role, ...), Groups (AWS Cloud, Region, Availability Zone, VPC, public/private subnet, Auto Scaling group, ...) and General (User, Client, Internet, Server, ...). For AWS diagrams use them instead of drawing generic shapes: get_library {} lists the folders, get_library { folder } or { query } finds items, add_library_item places one. A group box is a rectangle meant to contain other elements — resize it with update_elements (width/height) after placing it. Other installed icon packs work the same way.
@@ -133,7 +149,15 @@ The human edits concurrently: tool responses open with a digest of their changes
 
 const SCENE_URI = "scene://current";
 
-export function createSessionServer({ store, bridge, tracker, canvasUrl, readLibrary }: SessionContext) {
+export function createSessionServer({
+  store,
+  bridge,
+  tracker,
+  canvasUrl,
+  readLibrary,
+  readSettings,
+  writeSettings
+}: SessionContext) {
   const server = new McpServer(
     { name: "escalidrau", version: "0.1.0" },
     { instructions: SERVER_INSTRUCTIONS }
@@ -234,7 +258,10 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
       description: ADD_ELEMENTS_DESCRIPTION,
       inputSchema: { elements: z.array(elementSkeleton).min(1) }
     },
-    async ({ elements }) => mutationResult(await bridge.request("add_elements", { elements }))
+    async ({ elements }) =>
+      mutationResult(
+        await bridge.request("add_elements", { elements, style: canvasStyle(await readSettings()) })
+      )
   );
 
   server.registerTool(
@@ -384,7 +411,13 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
       }
       const result = await bridge.request(
         "add_library_item",
-        { elements: entry.elements, x, y, ...(label !== undefined ? { label } : {}) },
+        {
+          elements: entry.elements,
+          x,
+          y,
+          style: canvasStyle(await readSettings()),
+          ...(label !== undefined ? { label } : {})
+        },
         30_000
       );
       return mutationResult({ name: entry.name ?? null, ...(result as object) });
@@ -395,7 +428,7 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
     "connect_elements",
     {
       description:
-        "Draw arrows between elements that already exist on the canvas (placed library icons, group boxes, shapes). Each connection names the source and target element ids — for a library item use its image id (or the rectangle id of a group box), never the label's. The arrow is bound to both ends (it follows them when moved) and leaves/enters through their centre lines: horizontal connections touch the icons' side edges, vertical ones start below the source's label and stop above the target's icon, so text is never crossed. route \"straight\" (default) is a single segment — perfectly horizontal/vertical when the items share a row or column; route \"elbow\" adds one bend for items that are not aligned. Optional label (keep it short; leave ~12px per character between the items), strokeStyle, strokeColor and arrowheads.",
+        "Draw arrows between elements that already exist on the canvas (placed library icons, group boxes, shapes). Each connection names the source and target element ids — for a library item use its image id (or the rectangle id of a group box), never the label's. The arrow is bound to both ends (it follows them when moved) and leaves/enters through their centre lines: horizontal connections touch the icons' side edges, vertical ones start below the source's label and stop above the target's icon, so text is never crossed. Stroke look and default route come from the canvas connector style (get_connector_style); \"style\" (a preset name) and \"route\" override them per connection: \"straight\" is a single segment — perfectly horizontal/vertical when the items share a row or column; \"elbow\" adds one right-angle bend for items that are not aligned; \"curve\" draws a smooth S-curve. Optional label (keep it short; leave ~12px per character between the items), strokeStyle, strokeColor and arrowheads.",
       inputSchema: {
         connections: z
           .array(
@@ -403,7 +436,8 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
               from: z.string(),
               to: z.string(),
               label: z.string().optional(),
-              route: z.enum(["straight", "elbow"]).optional(),
+              route: z.enum(CONNECTOR_ROUTES).optional(),
+              style: z.enum(CONNECTOR_PRESETS).optional(),
               strokeColor: z.string().optional(),
               strokeStyle: z.enum(["solid", "dashed", "dotted"]).optional(),
               startArrowhead: z.enum(["arrow", "triangle", "bar", "dot", "none"]).optional(),
@@ -414,7 +448,70 @@ export function createSessionServer({ store, bridge, tracker, canvasUrl, readLib
       }
     },
     async ({ connections }) =>
-      mutationResult(await bridge.request("connect_elements", { connections }))
+      mutationResult(
+        await bridge.request("connect_elements", {
+          connections,
+          style: canvasStyle(await readSettings())
+        })
+      )
+  );
+
+  const describeStyle = (settings: Settings) => ({
+    ...canvasStyle(settings),
+    presets: CONNECTOR_PRESETS.map((id) => ({ id, description: PRESET_DESCRIPTIONS[id] })),
+    routes: CONNECTOR_ROUTES.map((id) => ({ id, description: ROUTE_DESCRIPTIONS[id] })),
+    fonts: FONTS.map((id) => ({ id, description: FONT_DESCRIPTIONS[id] }))
+  });
+
+  server.registerTool(
+    "get_canvas_style",
+    {
+      description:
+        "Read the canvas-wide style applied to everything drawn through the tools: the stroke preset for shapes, arrows and lines (sketch, clean or formal), the default connector route (straight, elbow or curve) and the font for labels and text (hand, classic, normal, formal, display, code), each option described. The person can change it from the toolbar's style button too, so read it rather than assuming.",
+      inputSchema: {}
+    },
+    async () => jsonResult(describeStyle(await readSettings()))
+  );
+
+  server.registerTool(
+    "set_canvas_style",
+    {
+      description:
+        "Change the canvas-wide style: \"preset\" for shapes, arrows and lines (sketch = hand-drawn default with hatched fills, clean = straight strokes with rounded corners and solid fills, formal = thin straight strokes with sharp corners, solid fills and filled triangle heads), the default connector \"route\" (straight, elbow, curve) and the \"font\" for labels and text (hand = Excalifont, classic = Virgil, normal = Nunito, formal = Helvetica, display = Lilita One, code = Comic Shanns). The style also becomes the toolbar default for what the person draws or types next. With applyToExisting: true every shape, arrow, line and text already on the canvas is restyled to match (library icons keep their look), so the diagram stays consistent. Ask the person once per empty canvas which look they want, and use this when they ask for a more formal/sober, cleaner or sketchier look or a particular font. One style per canvas — do not mix.",
+      inputSchema: {
+        preset: z.enum(CONNECTOR_PRESETS).optional(),
+        route: z.enum(CONNECTOR_ROUTES).optional(),
+        font: z.enum(FONTS).optional(),
+        applyToExisting: z.boolean().optional()
+      }
+    },
+    async ({ preset, route, font, applyToExisting }) => {
+      const current = await readSettings();
+      const next = normalizeSettings({
+        connectors: {
+          preset: preset ?? current.connectors.preset,
+          route: route ?? current.connectors.route
+        },
+        text: { font: font ?? current.text.font }
+      });
+      await writeSettings(next);
+      // The canvas also takes the style as its toolbar default; the request is
+      // best-effort when no canvas is connected (the setting is persisted anyway).
+      let restyled = 0;
+      try {
+        const result = (await bridge.request("set_canvas_style", {
+          style: canvasStyle(next),
+          applyToExisting: Boolean(applyToExisting)
+        })) as { restyled: number };
+        restyled = result.restyled;
+      } catch (error) {
+        if (applyToExisting) {
+          throw error;
+        }
+      }
+      const payload = { ...describeStyle(next), restyled };
+      return restyled > 0 ? mutationResult(payload) : jsonResult(payload);
+    }
   );
 
   server.registerTool(
