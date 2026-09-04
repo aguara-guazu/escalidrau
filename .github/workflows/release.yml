@@ -2,6 +2,8 @@ name: Release
 
 # Builds every platform on its own runner (a Windows installer cannot be made
 # on macOS without Wine) and attaches the artifacts to the tag's release.
+# Action majors are kept current because the runner deprecates older Node
+# runtimes: every action here runs on node24, as does the build itself.
 on:
   push:
     tags: ["v*"]
@@ -21,10 +23,10 @@ jobs:
             platform: linux
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
       - run: npm install
       - run: npm run build -w web
       # Bundles the Electron main process, the MCP bridge and the hook.
@@ -33,7 +35,7 @@ jobs:
         working-directory: desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}
           path: |
@@ -51,11 +53,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - run: ls -R artifacts
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
           fail_on_unmatched_files: true
