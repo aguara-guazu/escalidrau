@@ -19,6 +19,7 @@ type ServerRequest = {
     | "move_elements"
     | "import_mermaid"
     | "export_image"
+    | "export_png"
     | "export_scene"
     | "view_canvas"
     | "render_library"
@@ -418,6 +419,15 @@ export class SyncClient {
             Boolean(request.payload.applyToExisting)
           )
         };
+      case "export_png":
+        return this.exportPng(
+          request.payload as {
+            ids?: string[];
+            scale?: number;
+            background?: boolean;
+            padding?: number;
+          }
+        );
       case "export_image":
         return this.exportImage(
           request.payload as { format?: "png" | "svg"; scale?: number; background?: boolean }
@@ -1327,6 +1337,70 @@ export class SyncClient {
     return this.renderPng(targets as any);
   }
 
+
+  // A renderer-side canvas of 40M pixels is ~160 MB as RGBA; beyond that (or
+  // beyond 12k on a side) the browser refuses to rasterize or runs out of
+  // memory, so the requested scale is clamped to what actually fits.
+  private static readonly MAX_EXPORT_PIXELS = 40_000_000;
+  private static readonly MAX_EXPORT_SIDE = 12_000;
+  private static readonly MAX_EXPORT_SCALE = 4;
+
+  /**
+   * PNG of the whole scene, or of `ids` only, at the highest scale that fits
+   * (or the one asked for) — unlike renderPng (view_canvas), which shrinks the
+   * image to the model's vision budget. Returns the scale actually used and
+   * the measured bitmap size, so the caller reports what was written.
+   */
+  private async exportPng(payload: {
+    ids?: string[];
+    scale?: number;
+    background?: boolean;
+    padding?: number;
+  }) {
+    const all = this.api.getSceneElements();
+    let targets = all;
+    if (payload.ids) {
+      const wanted = new Set(payload.ids);
+      targets = all.filter((element) => wanted.has(element.id));
+    }
+    if (targets.length === 0) {
+      throw new Error(
+        payload.ids ? "None of those elements are on the canvas" : "Canvas is empty"
+      );
+    }
+    const requested = Math.min(payload.scale ?? SyncClient.MAX_EXPORT_SCALE, SyncClient.MAX_EXPORT_SCALE);
+    let used = requested;
+    const blob = await exportToBlob({
+      elements: targets,
+      appState: {
+        ...this.api.getAppState(),
+        exportBackground: payload.background !== false,
+        exportWithDarkMode: false
+      },
+      files: this.api.getFiles(),
+      mimeType: "image/png",
+      exportPadding: payload.padding ?? 16,
+      // width/height arrive in canvas units, padding included.
+      getDimensions: (width: number, height: number) => {
+        const fits = Math.min(
+          SyncClient.MAX_EXPORT_SIDE / width,
+          SyncClient.MAX_EXPORT_SIDE / height,
+          Math.sqrt(SyncClient.MAX_EXPORT_PIXELS / (width * height))
+        );
+        used = Math.round(Math.max(0.25, Math.min(requested, fits)) * 100) / 100;
+        return { width: Math.round(width * used), height: Math.round(height * used), scale: used };
+      }
+    });
+    const bitmap = await createImageBitmap(blob);
+    const dataUrl = await blobToDataUrl(blob);
+    return {
+      data: dataUrl.split(",")[1],
+      width: bitmap.width,
+      height: bitmap.height,
+      scale: used,
+      requestedScale: requested
+    };
+  }
 
   private async exportImage(payload: {
     format?: "png" | "svg";

@@ -160,6 +160,52 @@ export function buildLayout(elements: SceneElement[]): Layout {
   return { canvas: bboxOf(alive), parts, overlaps };
 }
 
+/**
+ * The elements needed to render `ids` on their own: each element plus the text
+ * bound to it, whatever shares a group with it and, for a frame, its children.
+ * Unlike partElementIds this does not follow arrows into neighbouring
+ * diagrams, so a fragment stays the fragment that was asked for.
+ */
+export function fragmentElementIds(
+  elements: SceneElement[],
+  ids: string[]
+): { ids: string[]; missing: string[] } {
+  const alive = elements.filter((element) => !element.isDeleted);
+  const byId = new Map(alive.map((element) => [element.id, element]));
+  const missing = ids.filter((id) => !byId.has(id));
+  const groups = new Set<string>();
+  const frames = new Set<string>();
+  const wanted = new Set<string>();
+  for (const id of ids) {
+    const element = byId.get(id);
+    if (!element) {
+      continue;
+    }
+    wanted.add(id);
+    for (const groupId of (element.groupIds as string[] | undefined) ?? []) {
+      groups.add(groupId);
+    }
+    if (element.type === "frame") {
+      frames.add(id);
+    }
+  }
+  for (const element of alive) {
+    if (wanted.has(element.id)) {
+      continue;
+    }
+    const inGroup = ((element.groupIds as string[] | undefined) ?? []).some((groupId) =>
+      groups.has(groupId)
+    );
+    const isLabel =
+      typeof element.containerId === "string" && wanted.has(element.containerId as string);
+    const inFrame = typeof element.frameId === "string" && frames.has(element.frameId as string);
+    if (inGroup || isLabel || inFrame) {
+      wanted.add(element.id);
+    }
+  }
+  return { ids: [...wanted], missing };
+}
+
 /** Full membership of the connected part containing elementId, or null. */
 export function partElementIds(elements: SceneElement[], elementId: string): string[] | null {
   const alive = elements.filter((element) => !element.isDeleted);

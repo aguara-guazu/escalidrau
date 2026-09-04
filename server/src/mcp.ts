@@ -1,4 +1,6 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, extname, isAbsolute, join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   SubscribeRequestSchema,
@@ -8,7 +10,7 @@ import { z } from "zod";
 import type { CanvasBridge } from "./bridge.js";
 import type { SceneStore } from "./scene.js";
 import type { ChangeTracker } from "./changes.js";
-import { buildLayout, partElementIds } from "./layout.js";
+import { buildLayout, fragmentElementIds, partElementIds } from "./layout.js";
 import { sceneToMermaid } from "./mermaid.js";
 import {
   CONNECTOR_PRESETS,
@@ -646,7 +648,7 @@ export function createSessionServer({
     "export_image",
     {
       description:
-        "Export the current canvas as an image. PNG returns the rendered image (also written to \"path\" if given, which must be an absolute file path). SVG returns markup as text, or writes it to \"path\". Use scale > 1 for higher resolution PNGs.",
+        "Export the whole canvas as SVG markup (returned as text, or written to \"path\"). For PNG prefer export_png: it also exports a single diagram or a set of elements, and controls resolution and background.",
       inputSchema: {
         format: z.enum(["png", "svg"]).default("png"),
         scale: z.number().min(0.2).max(4).optional(),
@@ -674,6 +676,112 @@ export function createSessionServer({
       }
       content.push({ type: "image", data: result.data, mimeType: "image/png" });
       return { content };
+    }
+  );
+
+  const PNG_DESCRIPTION = `Save a PNG of the canvas, of chosen diagrams on it, or of specific elements — for pasting into a document, a ticket or a slide.
+Scope, so that neighbouring diagrams are never dragged in:
+- neither "parts" nor "elements": the whole board.
+- "parts": one element id per diagram you want; each expands to its whole connected diagram (shapes, labels, bound arrows, groups, frames — the way view_canvas frames it). Several ids land in one image containing only those diagrams. Ids come from get_layout (each part lists elementIds) or from what you placed.
+- "elements": exactly those elements and nothing else, plus their labels, group members and frame contents. For a fragment of a diagram.
+"path" is where the file goes: an absolute path (a leading ~ is expanded, a missing .png extension is added, missing directories are created). Without it the image comes back inline instead, which costs a lot of tokens — pass a path unless the person asked to see it.
+Defaults are the sharpest sensible export: white background and the largest scale that the canvas can rasterize (up to 4x, less for a very large area — the result says which was used). Pass "scale" for a smaller file, "background" false for transparency, "padding" for a different margin (16 canvas pixels by default).
+To get one file per diagram, call this once per part instead of listing them all in "parts".`;
+
+  server.registerTool(
+    "export_png",
+    {
+      description: PNG_DESCRIPTION,
+      inputSchema: {
+        path: z.string().optional(),
+        parts: z.array(z.string()).min(1).optional(),
+        elements: z.array(z.string()).min(1).optional(),
+        scale: z.number().min(0.25).max(4).optional(),
+        background: z.boolean().optional(),
+        padding: z.number().int().min(0).max(200).optional()
+      }
+    },
+    async ({ path, parts, elements, scale, background, padding }) => {
+      if (parts && elements) {
+        throw new Error(
+          'Pass either "parts" (whole diagrams) or "elements" (exact elements), not both'
+        );
+      }
+      let targetIds: string[] | undefined;
+      let scope = "the whole board";
+      if (parts) {
+        const wanted = new Set<string>();
+        const missing: string[] = [];
+        for (const id of parts) {
+          const members = partElementIds(store.all(), id);
+          if (!members) {
+            missing.push(id);
+            continue;
+          }
+          for (const member of members) {
+            wanted.add(member);
+          }
+        }
+        if (missing.length > 0) {
+          throw new Error(`Not on the canvas: ${missing.join(", ")}`);
+        }
+        targetIds = [...wanted];
+        scope =
+          parts.length === 1
+            ? `the diagram around "${parts[0]}" (${targetIds.length} elements)`
+            : `${parts.length} diagrams (${targetIds.length} elements)`;
+      } else if (elements) {
+        const fragment = fragmentElementIds(store.all(), elements);
+        if (fragment.missing.length > 0) {
+          throw new Error(`Not on the canvas: ${fragment.missing.join(", ")}`);
+        }
+        targetIds = fragment.ids;
+        scope = `${fragment.ids.length} element(s)`;
+      }
+      const result = (await bridge.request(
+        "export_png",
+        { ids: targetIds, scale, background, padding },
+        30_000
+      )) as {
+        data: string;
+        width: number;
+        height: number;
+        scale: number;
+        requestedScale: number;
+      };
+      const bytes = Buffer.from(result.data, "base64");
+      const clamped =
+        result.scale < result.requestedScale ? " — the largest this area can rasterize" : "";
+      const size = `${result.width}x${result.height} px at ${result.scale}x${clamped}, ${Math.max(1, Math.round(bytes.length / 1024))} KB`;
+      if (!path) {
+        return {
+          content: [
+            ...digest(),
+            { type: "text" as const, text: `PNG of ${scope} (${size}). Pass "path" to save it to a file.` },
+            { type: "image" as const, data: result.data, mimeType: "image/png" }
+          ]
+        };
+      }
+      const expanded = path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
+      if (!isAbsolute(expanded)) {
+        throw new Error(`"path" must be an absolute file path (got "${path}")`);
+      }
+      // A path that names an existing directory would otherwise fail on write.
+      const isDirectory = await stat(expanded)
+        .then((entry) => entry.isDirectory())
+        .catch(() => false);
+      if (isDirectory) {
+        throw new Error(`"${expanded}" is a directory — give the file name too`);
+      }
+      const file = extname(expanded).toLowerCase() === ".png" ? expanded : `${expanded}.png`;
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, bytes);
+      return {
+        content: [
+          ...digest(),
+          { type: "text" as const, text: `PNG of ${scope} saved to ${file} (${size})` }
+        ]
+      };
     }
   );
 

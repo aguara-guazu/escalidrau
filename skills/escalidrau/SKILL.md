@@ -17,11 +17,11 @@ Escalidrau is a live whiteboard shared with a person: every tool call renders on
 | `view_library { folder \| query, offset, limit }` | Contact sheet of icons, labelled with their index. |
 | `add_library_item { item, x, y, label? }` | Place an icon. `x,y` is the top-left of the **icon** (labels hang below it). Returns every placed element with `id, type, x, y, width, height`. |
 | `add_elements` | Plain shapes, text captions, frames; arrows between elements created **in the same call** (`start`/`end` ids). |
-| `connect_elements { connections: [{ from, to, label?, route?, style? }] }` | Arrows between elements that already exist. Anchored to both ends, leave/enter through the centre lines, avoid labels. `route`: straight, elbow or curve. |
-| `get_canvas_style` / `set_canvas_style { preset?, route?, font?, applyToExisting? }` | The canvas-wide look: stroke preset (sketch / clean / formal), default route, font. See *Canvas style*. |
+| `connect_elements { connections: [{ from, to, label?, route? }] }` | Arrows between elements that already exist. Anchored to both ends, leave/enter through the centre lines, avoid labels. |
 | `move_elements` | Move a whole part (icon + label + attached arrows) or a single element. |
 | `update_elements` | Restyle or resize (group boxes: `width`/`height`). |
 | `view_canvas` | Look at the result. Mandatory after every batch. |
+| `export_png { path, parts? \| elements?, scale?, background? }` | Save a PNG of the board, of chosen diagrams (`parts`) or of specific elements (`elements`). See *Exporting*. |
 | `wait_for_user_changes` | Block until the person edits; how you keep collaborating. |
 
 ## Workflow
@@ -50,7 +50,7 @@ Grid pitch (distance between icon centres):
 - **Horizontal: 220 px** for service icons, **200 px** for resource/general icons. Wider labels than that must be shortened with `label`.
 - **Vertical: 170 px.** That leaves ~50 px of clear space between one row's labels and the next row's icons for connectors.
 - Never place two items closer than this; when in doubt, add another 40 px rather than remove any.
-- Connected items belong on the same row (equal icon centre `y`) or the same column (equal centre `x`), so their connector is a straight horizontal or vertical line. Where a diagonal is unavoidable, use `route: "elbow"` (wiring) or `route: "curve"` (flow).
+- Connected items belong on the same row (equal icon centre `y`) or the same column (equal centre `x`), so their connector is a straight horizontal or vertical line. Where a diagonal is unavoidable, use `route: "elbow"`.
 
 Coordinates: an icon of size `s` centred at grid point `(cx, cy)` is placed with `add_library_item { x: cx - s/2, y: cy - s/2 }`. Example row at `cy = 300` with a 220 px pitch: service icons at `x = 168, 388, 608, 828` (`y = 268`).
 
@@ -62,48 +62,13 @@ Size from the content: `width = span of the children's items + 60`, `height = sp
 
 Availability Zones are dashed teal boxes; subnets are solid (green public, teal private); Region is dashed teal; Auto Scaling group is dashed orange — use the library items rather than styling rectangles by hand.
 
-A vertical connector entering or leaving a box runs through its header row. Keep box labels short (`label: "App subnet"`, not "Private subnet (app)") or place the connector's column at least 260 px right of the box's left edge, and do not label such connectors — an arrow label lands mid-segment, exactly where the header text is.
-
 ## Connectors
 
 - Always `connect_elements` for arrows between existing items; pass the **icon's** id (the `image` element, or the `rectangle` of a group box), not the label's.
-- `route: "straight"` leaves and enters through the icons' centre lines; between items on the same row/column that is a perfectly horizontal/vertical arrow. For items that are not aligned, `route: "elbow"` draws one horizontal and one vertical segment, exiting the side that faces the target and entering the target from above or below its label; `route: "curve"` draws a smooth S-curve that leaves and arrives perpendicular to the edges — use it to skip a row or column, for feedback loops and for anything that should read as flow rather than wiring. Without `route` the canvas default applies (see *Canvas style*).
+- `route: "straight"` (default) leaves and enters through the icons' centre lines; between items on the same row/column that is a perfectly horizontal/vertical arrow. For items that are not aligned, `route: "elbow"` draws one horizontal and one vertical segment, exiting the side that faces the target and entering the target from above or below its label.
 - Vertical connectors automatically start below the source's label and stop before the target's icon, so they never cross text.
 - Do not fan five arrows out of one icon; route through a load balancer, queue or gateway item, or split the diagram.
 - Arrows created with `add_elements` and explicit `points` are for free-floating annotations only. They are not attached to anything and drift when items move.
-
-## Canvas style
-
-Shapes, arrows, lines and text follow one canvas-wide style, stored with the canvas and shared with the person: they set it from the style button in the top bar (the icon next to *Library*), you read and set it with `get_canvas_style` / `set_canvas_style`. It has three parts:
-
-| Preset | Look | Use for |
-| --- | --- | --- |
-| `sketch` (default) | Hand-drawn strokes, medium weight, rounded corners, hatched fills, open arrowheads | Whiteboarding, brainstorming, anything that should look like a sketch |
-| `clean` | Perfectly straight strokes, medium weight, rounded corners, solid fills, open arrowheads | Tidy working diagrams that still feel informal |
-| `formal` | Thin straight strokes, sharp corners, solid fills, filled triangular heads | Documentation, proposals, presentations, anything the person calls formal, sober or clean |
-
-The preset applies to the shapes you draw with `add_elements` (rectangles, ellipses, diamonds) as much as to connectors; library icons and group boxes keep their own look.
-
-a default **route** (`straight`, `elbow`, `curve`) that `connect_elements` uses when a connection does not set its own, and a **font** for every label and text:
-
-| Font | Face | Use for |
-| --- | --- | --- |
-| `hand` (default) | Excalifont, hand-drawn | Sketch and clean diagrams |
-| `classic` | Virgil, the original whiteboard font | Same, rounder |
-| `normal` | Nunito, friendly sans-serif | Neutral, small text |
-| `formal` | Helvetica / Arial (Liberation Sans in exports) | Documentation, proposals; pairs with `formal` strokes |
-| `display` | Lilita One, bold | Titles and big callouts only, never labels |
-| `code` | Comic Shanns, monospaced | Identifiers, paths, commands |
-
-Placed icons take the font for their labels, `add_elements` text and shape labels take it unless they set `fontFamily`, and it becomes the toolbar default for what the person types.
-
-Asking vs deciding:
-
-- **Empty canvas, first diagram**: ask in one line which look they want — stroke (sketch / clean / formal), arrows (straight / right-angle / curved) and font — unless they already said, then `set_canvas_style` once. Do not ask again on the same canvas. Suggest a pairing when they hesitate: sketch + hand for thinking out loud, formal + formal for documents and proposals.
-- The person names a look ("more formal", "sober", "for the proposal", "sketchy", "in a mono font") → `set_canvas_style` accordingly before drawing; if the canvas has content, pass `applyToExisting: true` so it stays consistent, and say so in one line.
-- The canvas already has content → keep the current style (`get_canvas_style`); never mix presets or fonts on one canvas. To change it, change it everywhere.
-- The style also sets the toolbar defaults for what the person draws and types, so a change you make shows up in their next stroke; they may likewise change it from the style button — reading `get_canvas_style` before a large batch is cheap.
-- Per-connection overrides (`style`, `route`, `strokeStyle: "dashed"`, arrowheads) and per-text `fontFamily` are for meaning — an async call, a dependency, a code identifier — not for taste.
 
 ## Choosing icons
 
@@ -113,6 +78,18 @@ Asking vs deciding:
 - **Groups**: the boundaries. Every AWS diagram gets an "AWS Cloud" box; put a VPC inside it, subnets inside the VPC.
 - Rename an icon for the diagram with `label` ("Orders API" on a Lambda, "orders-prod" on an RDS instance) instead of adding a separate text element. Keep labels under ~20 characters or they wrap to two lines.
 - Other installed packs work the same way and show up as their own folders in `get_library {}`.
+
+## Exporting
+
+`export_png` writes the image the person will paste somewhere; `view_canvas` is only for your own eyes.
+
+- Always pass `path` (absolute; `~` is expanded, `.png` added, directories created). Without it the image comes back inline and burns tokens.
+- **Export the diagram they meant, not its neighbours.** A board usually holds several diagrams: name the ones you want with `parts` (one element id each — from `get_layout`, or an id you placed) and nothing else gets in. Only leave the scope empty when they really asked for the whole board. Use `elements` for a piece of a diagram.
+- Which diagram is which: `get_layout` reports each part's texts and bounding box — match those against what the person said ("the checkout flow", "the one on the right") instead of guessing. If two readings are plausible, ask.
+- Several diagrams: one `export_png` per diagram gives one file each (name each file after what it shows); listing them together in `parts` gives a single image with just those diagrams.
+- Defaults are deliberate: **white background** and the **largest scale that fits** (up to 4x), so the file is good enough to drop into a document or a slide without a second pass. Do not lower them on your own.
+- Say what you exported (path, pixel size) and offer the two variants in one line — a **transparent** background (`background: false`) for slides over colour, or a **smaller** file (`scale`, e.g. 2 or 1) if the PNG is heavy. Re-export only if they take you up on it.
+- Verify with `view_canvas` before exporting, not after: a bad diagram exports just as badly.
 
 ## Before you report
 
