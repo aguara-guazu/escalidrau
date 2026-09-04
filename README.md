@@ -69,7 +69,7 @@ The nice part of the model: **the drawing travels straight between the computers
 - **One look per canvas.** The style button in the top bar sets how shapes, arrows, lines and text come out — hand-drawn, clean or formal strokes; straight, right-angle or curved arrows; six fonts — for you and your agent alike, with one click to restyle what is already drawn.
 - **Icon packs, in folders.** The library panel shows every pack as folders (collection → category → icons) with search. The AWS Architecture Icons are included — services, resources, groups and general icons; install any other pack from the public catalog in one click. They all stay installed.
 - **It keeps itself current.** On macOS it installs new versions on launch and tells you what changed; on Windows and Linux it lets you know when one is out.
-- **Export** to PNG, SVG, or a file you can keep editing later. Your agent can export too — the whole board or a single diagram, straight to a PNG where you ask for it.
+- **Export** to PNG, SVG, or a file you can keep editing later. Your agent can export too — the whole board or a single diagram, straight to a PNG where you ask for it — and it can save the editable `.excalidraw` file, open one on the canvas, and tell you whether anything is still unsaved.
 
 ## Quick answers
 
@@ -91,7 +91,7 @@ xattr -dr com.apple.quarantine "/Applications/Escalidrau.app"
 
 ## For developers
 
-While the app is open it exposes an MCP server at `http://localhost:3580/mcp` with these tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `connect_elements`, `get_canvas_style`, `set_canvas_style`, `update_elements`, `export_png`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`. The **MCP** menu also installs the `escalidrau` skill (`skills/escalidrau/SKILL.md`) for Claude Code and Codex: the layout method the agent follows to keep diagrams tidy — grid spacing, label clearance, anchored connectors.
+While the app is open it exposes an MCP server at `http://localhost:3580/mcp` with these tools: `get_scene`, `get_layout`, `get_library`, `view_library`, `add_library_item`, `add_elements`, `connect_elements`, `get_canvas_style`, `set_canvas_style`, `update_elements`, `export_png`, `get_document`, `save_scene`, `open_scene`, `move_elements`, `delete_elements`, `import_mermaid`, `export_mermaid`, `view_canvas`, `export_image`, `wait_for_user_changes`. The **MCP** menu also installs the `escalidrau` skill (`skills/escalidrau/SKILL.md`) for Claude Code and Codex: the layout method the agent follows to keep diagrams tidy — grid spacing, label clearance, anchored connectors.
 
 ```bash
 npm install

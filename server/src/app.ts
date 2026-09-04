@@ -14,6 +14,7 @@ import { CanvasBridge } from "./bridge.js";
 import { ChangeTracker } from "./changes.js";
 import { createSessionServer } from "./mcp.js";
 import { normalizeSettings, type Settings } from "./settings.js";
+import { DocumentTracker, sceneElements, sceneSignature } from "./document.js";
 import { sceneToMermaid } from "./mermaid.js";
 
 export type AppOptions = {
@@ -36,6 +37,10 @@ export type AppHandle = {
   hasContent: () => boolean;
   exportScene: () => Promise<string>;
   resetScene: () => void;
+  /** The file the board belongs to, for the shell's save dialog. */
+  documentPath: () => string | null;
+  /** Records a save the shell performed itself. */
+  markSaved: (path: string, json: string) => void;
   close: () => Promise<void>;
 };
 
@@ -97,6 +102,8 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
   };
 
   const store = new SceneStore();
+  // Which file the board belongs to; shared by the tools and the app shell.
+  const document = new DocumentTracker();
   const tracker = new ChangeTracker();
   const bridge = new CanvasBridge(store, tracker, canvasUrl);
   const transports = new Map<string, StreamableHTTPServerTransport>();
@@ -150,6 +157,7 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
       canvasUrl,
       readSettings,
       writeSettings,
+      document,
       readLibrary: async () => {
         try {
           const parsed = JSON.parse(await readFile(libraryPath, "utf8")) as unknown;
@@ -387,7 +395,13 @@ export async function startApp(options: AppOptions = {}): Promise<AppHandle> {
       const result = (await bridge.request("export_scene", {}, 15_000)) as { json: string };
       return result.json;
     },
-    resetScene: () => bridge.reset(),
+    resetScene: () => {
+      bridge.reset();
+      document.clear();
+    },
+    documentPath: () => document.path,
+    markSaved: (path: string, json: string) =>
+      document.sync(path, sceneSignature(sceneElements(json) ?? [])),
     close: async () => {
       for (const transport of transports.values()) {
         await transport.close();

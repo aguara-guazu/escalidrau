@@ -3,6 +3,7 @@ import {
   convertToExcalidrawElements,
   exportToBlob,
   exportToSvg,
+  loadFromBlob,
   reconcileElements,
   serializeAsJSON
 } from "@excalidraw/excalidraw";
@@ -21,6 +22,8 @@ type ServerRequest = {
     | "export_image"
     | "export_png"
     | "export_scene"
+    | "load_scene"
+    | "set_document_name"
     | "view_canvas"
     | "render_library"
     | "add_library_item"
@@ -382,6 +385,11 @@ export class SyncClient {
         );
       case "import_mermaid":
         return this.insertMermaid(request.payload.mermaid as string);
+      case "load_scene":
+        return this.loadScene(request.payload as { json: string; name?: string });
+      case "set_document_name":
+        this.api.updateScene({ appState: { name: request.payload.name as string } });
+        return { name: request.payload.name };
       case "export_scene":
         return {
           json: serializeAsJSON(
@@ -752,6 +760,47 @@ export class SyncClient {
       captureUpdate: CaptureUpdateAction.IMMEDIATELY
     });
     return { moved: results, missingIds };
+  }
+
+  /**
+   * Replaces the canvas with a saved scene: the file goes through the
+   * editor's own loader, so scenes from older versions are migrated and
+   * embedded images come back. The whole load is marked as remote so it is
+   * not reported to the model as a human edit; the caller pushes the result.
+   */
+  private async loadScene(payload: { json: string; name?: string }) {
+    const restored = await loadFromBlob(
+      new Blob([payload.json], { type: "application/json" }),
+      null,
+      null
+    );
+    if (restored.elements.length === 0) {
+      throw new Error("That scene has no elements");
+    }
+    this.applyingRemote = true;
+    try {
+      this.api.resetScene();
+      if (restored.files) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.api.addFiles(Object.values(restored.files) as any);
+      }
+      this.api.updateScene({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        elements: restored.elements as any,
+        appState: payload.name ? { name: payload.name } : undefined,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.api.scrollToContent(restored.elements as any, { fitToViewport: true });
+    } finally {
+      this.applyingRemote = false;
+    }
+    // Other tabs and the server store are told to drop the old scene; the
+    // response handler pushes the new one right after.
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "scene_reset", origin: "agent" }));
+    }
+    return { elements: restored.elements.length, name: payload.name ?? null };
   }
 
   // Shared by the in-app import dialog and the import_mermaid MCP action.

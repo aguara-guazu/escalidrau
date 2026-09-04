@@ -1,6 +1,5 @@
-import { mkdir, stat, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { dirname, extname, isAbsolute, join } from "node:path";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, dirname } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   SubscribeRequestSchema,
@@ -11,6 +10,13 @@ import type { CanvasBridge } from "./bridge.js";
 import type { SceneStore } from "./scene.js";
 import type { ChangeTracker } from "./changes.js";
 import { buildLayout, fragmentElementIds, partElementIds } from "./layout.js";
+import {
+  expandUserPath,
+  sceneElements,
+  sceneSignature,
+  withExtension,
+  type DocumentTracker
+} from "./document.js";
 import { sceneToMermaid } from "./mermaid.js";
 import {
   CONNECTOR_PRESETS,
@@ -56,6 +62,7 @@ export type SessionContext = {
   readLibrary: () => Promise<unknown[]>;
   readSettings: () => Promise<Settings>;
   writeSettings: (next: Settings) => Promise<void>;
+  document: DocumentTracker;
 };
 
 type StoredLibraryItem = {
@@ -158,7 +165,8 @@ export function createSessionServer({
   canvasUrl,
   readLibrary,
   readSettings,
-  writeSettings
+  writeSettings,
+  document
 }: SessionContext) {
   const server = new McpServer(
     { name: "escalidrau", version: "0.1.0" },
@@ -244,6 +252,73 @@ export function createSessionServer({
       VERIFY_REMINDER
     ]
   });
+
+  /** Resolves a model-supplied path for writing and prepares its directory. */
+  const writableFile = async (raw: string, extension: `.${string}`) => {
+    const expanded = expandUserPath(raw);
+    const entry = await stat(expanded).catch(() => null);
+    if (entry?.isDirectory()) {
+      throw new Error(`"${expanded}" is a directory — give the file name too`);
+    }
+    const file = withExtension(expanded, extension);
+    await mkdir(dirname(file), { recursive: true });
+    return file;
+  };
+
+  const currentSceneJson = async () =>
+    ((await bridge.request("export_scene", {}, 15_000)) as { json: string }).json;
+
+  type DocumentStatus = {
+    path: string | null;
+    name: string | null;
+    savedAt: string | null;
+    unsavedChanges: boolean;
+    elements: number;
+    note?: string;
+  };
+
+  /**
+   * Compares the live scene with the file it belongs to, so a save made from
+   * the app's own menu counts as much as one made through save_scene.
+   */
+  const documentStatus = async (): Promise<DocumentStatus> => {
+    const elements = store.all().filter((element) => !element.isDeleted).length;
+    const base = { path: document.path, name: document.name, elements };
+    if (document.path === null) {
+      return {
+        ...base,
+        savedAt: null,
+        unsavedChanges: elements > 0,
+        note:
+          elements > 0
+            ? "This board has never been saved to a file; save_scene needs a path."
+            : "Empty board, no file."
+      };
+    }
+    const onDisk = await readFile(document.path, "utf8").catch(() => null);
+    if (onDisk === null) {
+      return { ...base, savedAt: null, unsavedChanges: true, note: `${document.path} is gone.` };
+    }
+    const saved = sceneElements(onDisk);
+    if (saved === null) {
+      return {
+        ...base,
+        savedAt: null,
+        unsavedChanges: true,
+        note: `${document.path} is not readable as an Excalidraw scene.`
+      };
+    }
+    const entry = await stat(document.path).catch(() => null);
+    const live = sceneSignature(sceneElements(await currentSceneJson()) ?? []);
+    return {
+      ...base,
+      savedAt: entry ? new Date(entry.mtimeMs).toISOString() : null,
+      // Clean when the scene matches the file, and also when it has not
+      // changed since it last met that file — a scene migrated from an older
+      // version differs from the bytes on disk without anything to save.
+      unsavedChanges: live !== sceneSignature(saved) && live !== document.syncedSignature
+    };
+  };
 
   server.registerTool(
     "get_scene",
@@ -762,19 +837,7 @@ To get one file per diagram, call this once per part instead of listing them all
           ]
         };
       }
-      const expanded = path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
-      if (!isAbsolute(expanded)) {
-        throw new Error(`"path" must be an absolute file path (got "${path}")`);
-      }
-      // A path that names an existing directory would otherwise fail on write.
-      const isDirectory = await stat(expanded)
-        .then((entry) => entry.isDirectory())
-        .catch(() => false);
-      if (isDirectory) {
-        throw new Error(`"${expanded}" is a directory — give the file name too`);
-      }
-      const file = extname(expanded).toLowerCase() === ".png" ? expanded : `${expanded}.png`;
-      await mkdir(dirname(file), { recursive: true });
+      const file = await writableFile(path, ".png");
       await writeFile(file, bytes);
       return {
         content: [
@@ -782,6 +845,101 @@ To get one file per diagram, call this once per part instead of listing them all
           { type: "text" as const, text: `PNG of ${scope} saved to ${file} (${size})` }
         ]
       };
+    }
+  );
+
+  server.registerTool(
+    "get_document",
+    {
+      description:
+        "Whether the board is saved: the file it belongs to (path, name, when it was last written) and whether it has changes that are not in that file yet. The comparison is against the file on disk, so a save the person made from the app's menu counts too; only the drawing is compared, so an edit that was undone leaves no pending change. \"path\" is null when the board has never been saved. Check this before opening another file, before telling the person their work is safe, and when they ask whether anything is unsaved.",
+      inputSchema: {}
+    },
+    async () => jsonResult(await documentStatus())
+  );
+
+  server.registerTool(
+    "save_scene",
+    {
+      description:
+        "Save the board as an editable .excalidraw file — the format that keeps every element editable, unlike export_png. \"path\" is where it goes (absolute; a leading ~ is expanded, a missing .excalidraw extension is added, missing directories are created); omit it to save over the file the board already belongs to (see get_document). Saving to a path that already holds another file needs overwrite: true, and an empty board is refused unless allowEmpty is true, so a stale canvas cannot wipe someone's file. After this the board belongs to that file, so later saves need no path.",
+      inputSchema: {
+        path: z.string().optional(),
+        overwrite: z.boolean().optional(),
+        allowEmpty: z.boolean().optional()
+      }
+    },
+    async ({ path, overwrite, allowEmpty }) => {
+      const alive = store.all().filter((element) => !element.isDeleted).length;
+      if (alive === 0 && allowEmpty !== true) {
+        throw new Error(
+          "The board is empty — pass allowEmpty: true if you really mean to save an empty scene"
+        );
+      }
+      const target = path ? await writableFile(path, ".excalidraw") : document.path;
+      if (target === null) {
+        throw new Error('This board has no file yet — pass "path" to say where to save it');
+      }
+      if (target !== document.path) {
+        const entry = await stat(target).catch(() => null);
+        if (entry && overwrite !== true) {
+          throw new Error(`${target} already exists — pass overwrite: true to replace it`);
+        }
+      }
+      const json = await currentSceneJson();
+      await writeFile(target, json, "utf8");
+      document.sync(target, sceneSignature(sceneElements(json) ?? []));
+      await bridge.request("set_document_name", { name: basename(target) }).catch(() => undefined);
+      const kb = Math.max(1, Math.round(Buffer.byteLength(json, "utf8") / 1024));
+      return jsonResult({ path: target, elements: alive, size: `${kb} KB` });
+    }
+  );
+
+  server.registerTool(
+    "open_scene",
+    {
+      description:
+        "Open an .excalidraw file on the shared canvas, replacing what is there — the person sees it appear and can keep editing it. \"path\" is the file to read (absolute; a leading ~ is expanded, and the .excalidraw extension is tried when the path has none). If the board has unsaved changes this refuses unless discardUnsaved is true, so ask the person, or save first with save_scene. After this the board belongs to the opened file. To add a scene next to the current one instead of replacing it, use import_mermaid or add_elements.",
+      inputSchema: {
+        path: z.string(),
+        discardUnsaved: z.boolean().optional()
+      }
+    },
+    async ({ path, discardUnsaved }) => {
+      const expanded = expandUserPath(path);
+      const withExt = withExtension(expanded, ".excalidraw");
+      const target = (await stat(expanded).catch(() => null))?.isFile()
+        ? expanded
+        : (await stat(withExt).catch(() => null))?.isFile()
+          ? withExt
+          : null;
+      if (target === null) {
+        throw new Error(`No file at ${expanded}`);
+      }
+      const json = await readFile(target, "utf8");
+      const elements = sceneElements(json);
+      if (elements === null) {
+        throw new Error(
+          `${target} is not an Excalidraw scene (expected JSON with type "excalidraw"); an .excalidrawlib library goes to the library panel instead`
+        );
+      }
+      const status = await documentStatus();
+      if (status.unsavedChanges && status.elements > 0 && discardUnsaved !== true) {
+        throw new Error(
+          status.path === null
+            ? "The board has unsaved work that has never been saved to a file. Save it with save_scene first, or pass discardUnsaved: true to replace it."
+            : `The board has changes that are not in ${status.path} yet. Save it first, or pass discardUnsaved: true to replace it.`
+        );
+      }
+      const result = (await bridge.request(
+        "load_scene",
+        { json, name: basename(target) },
+        30_000
+      )) as { elements: number };
+      // The editor migrates and re-anchors what it loads, so the signature to
+      // remember is the scene as it now stands, not the file's.
+      document.sync(target, sceneSignature(sceneElements(await currentSceneJson()) ?? []));
+      return mutationResult({ path: target, elements: result.elements });
     }
   );
 

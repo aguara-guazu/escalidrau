@@ -139,13 +139,17 @@ if (!gotLock) {
     try {
       const json = await appHandle.exportScene();
       const { canceled, filePath } = await dialog.showSaveDialog(window, {
-        defaultPath: join(app.getPath("documents"), "canvas.excalidraw"),
+        // The file the board came from, when it has one, so this saves back
+        // over it instead of asking for a name again.
+        defaultPath:
+          appHandle.documentPath() ?? join(app.getPath("documents"), "canvas.excalidraw"),
         filters: [{ name: "Canvas scene", extensions: ["excalidraw"] }]
       });
       if (canceled || !filePath) {
         return false;
       }
       await writeFile(filePath, json, "utf8");
+      appHandle.markSaved(filePath, json);
       return true;
     } catch (error) {
       dialog.showErrorBox(

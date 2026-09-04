@@ -22,6 +22,7 @@ Escalidrau is a live whiteboard shared with a person: every tool call renders on
 | `update_elements` | Restyle or resize (group boxes: `width`/`height`). |
 | `view_canvas` | Look at the result. Mandatory after every batch. |
 | `export_png { path, parts? \| elements?, scale?, background? }` | Save a PNG of the board, of chosen diagrams (`parts`) or of specific elements (`elements`). See *Exporting*. |
+| `get_document` / `save_scene { path? }` / `open_scene { path }` | The file the board belongs to and whether it has unsaved changes; save it as .excalidraw; open one. See *Files*. |
 | `wait_for_user_changes` | Block until the person edits; how you keep collaborating. |
 
 ## Workflow
@@ -90,6 +91,16 @@ Availability Zones are dashed teal boxes; subnets are solid (green public, teal 
 - Defaults are deliberate: **white background** and the **largest scale that fits** (up to 4x), so the file is good enough to drop into a document or a slide without a second pass. Do not lower them on your own.
 - Say what you exported (path, pixel size) and offer the two variants in one line — a **transparent** background (`background: false`) for slides over colour, or a **smaller** file (`scale`, e.g. 2 or 1) if the PNG is heavy. Re-export only if they take you up on it.
 - Verify with `view_canvas` before exporting, not after: a bad diagram exports just as badly.
+
+## Files
+
+A PNG is for showing; an `.excalidraw` file is the board itself, still editable. The board lives in memory until someone saves it.
+
+- `get_document` answers the only question that matters here: which file the board belongs to (`path`, `null` when it has never been saved) and whether it has `unsavedChanges`. It compares the drawing against the file on disk, so a save the person made from the app's menu counts too. Read it — never assume the board is saved.
+- `save_scene { path }` writes the file; without `path` it saves over the board's own file, so ask once where it goes and then keep saving there. Saving onto an unrelated existing file needs `overwrite: true`, and an empty board is refused — if the canvas is empty because the app just reopened, that refusal is telling you something: do not force it.
+- `open_scene { path }` replaces the board with a file. It refuses while there are unsaved changes: say what would be lost and let the person choose between saving first and `discardUnsaved: true`. Never pass `discardUnsaved` on your own initiative.
+- Before anything destructive — opening a file, `delete_elements` over a whole board, a reset — check `get_document` and mention what is unsaved.
+- After finishing a diagram the person will keep, offer to save it: they may not realise the board is only in memory.
 
 ## Before you report
 
